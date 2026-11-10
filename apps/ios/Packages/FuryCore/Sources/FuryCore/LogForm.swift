@@ -80,6 +80,11 @@ public struct LogValidationError: Error, Equatable, Sendable, CustomStringConver
     public let itemTitle: String?
     public let message: String
 
+    public init(itemTitle: String?, message: String) {
+        self.itemTitle = itemTitle
+        self.message = message
+    }
+
     public var description: String { itemTitle.map { "\($0): \(message)" } ?? message }
 }
 

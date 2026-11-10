@@ -150,6 +150,8 @@ struct AsyncContent<Value, Content: View>: View {
         } catch is CancellationError {
             // The view went away; nothing to show.
         } catch {
+            // A load interrupted by leaving the screen is not a failure worth showing.
+            if Task.isCancelled { return }
             // Keep showing what we already have if a refresh fails.
             if value == nil { self.error = Backend.message(for: error) }
         }

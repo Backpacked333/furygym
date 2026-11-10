@@ -144,7 +144,7 @@ struct MembershipView: View {
     }
 
     @ViewBuilder private var current: some View {
-        let live = model.memberships.filter { [.active, .pastDue, .frozen].contains($0.status) }
+        let live = model.memberships.filter { [MembershipStatus.active, .pastDue, .frozen].contains($0.status) }
         if live.isEmpty {
             Card {
                 Text("No active membership").font(.headline)
