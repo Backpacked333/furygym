@@ -124,13 +124,13 @@ struct ProfileView: View {
                     .buttonStyle(.fc(.gray, size: .medium))
             }
             .padding(16)
-            .background(
+            .background {
                 ZStack {
                     FC.bg2
                     RadialGradient(colors: [FC.redFill.opacity(0.35), .clear], center: .topTrailing, startRadius: 0, endRadius: 260)
-                },
-                in: RoundedRectangle(cornerRadius: FC.cardRadius, style: .continuous)
-            )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: FC.cardRadius, style: .continuous))
         } else {
             FCard {
                 Text("No membership yet").font(.headline)
