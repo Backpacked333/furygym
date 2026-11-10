@@ -95,5 +95,7 @@ describe("csv export", () => {
     expect(toCsv(["name", "note", "amount"], [["O'Brien, Pat", 'said "hi"', 12.5], ["=SUM(A1)", null, 0]])).toBe(
       'name,note,amount\r\n"O\'Brien, Pat","said ""hi""",12.5\r\n\'=SUM(A1),,0\r\n',
     );
+    // negative amounts are numbers, not formulas
+    expect(toCsv(["net", "note"], [["-1.03", "-cmd|' /C calc'!A0"]])).toBe("net,note\r\n-1.03,'-cmd|' /C calc'!A0\r\n");
   });
 });
