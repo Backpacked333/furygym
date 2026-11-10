@@ -74,6 +74,7 @@ begin
   update public.gym_members set role = 'owner' where user_id = v_owner;
   update public.gym_members set role = 'coach' where user_id = v_coach;
   update public.gym_secrets set display_token = 'demo-display-token' where gym_id = v_gym;
+  update public.gyms set milestone_reward = 'a free Fury Co. tee' where id = v_gym;
 
   -- Plans and waiver -----------------------------------------------------------------------------
   insert into public.membership_plans (gym_id, name, description, kind, price_cents, billing_interval, position)

@@ -93,6 +93,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"checkin_secrets": {
+                  Row: {
+                    "created_at": string,"secret": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"secret"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"secret"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "checkin_secrets_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"class_schedules": {
                   Row: {
                     "active": boolean,"capacity": number,"coach_id": string | null,"created_at": string,"duration_minutes": number,"gym_id": string,"id": string,"start_time": string,"title": string,"track_id": string | null,"valid_from": string | null,"valid_until": string | null,"weekday": number
@@ -191,14 +211,14 @@ isOneToOne: false
                   ]
                 },"display_state": {
                   Row: {
-                    "gym_id": string,"message": string | null,"mode": Database["public"]['Enums']["display_mode"],"show_coach_notes": boolean,"track_id": string | null,"updated_at": string,"updated_by": string | null,"workout_id": string | null
+                    "gym_id": string,"message": string | null,"mode": Database["public"]['Enums']["display_mode"],"show_checked_in": boolean,"show_coach_notes": boolean,"track_id": string | null,"updated_at": string,"updated_by": string | null,"workout_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "gym_id": string,"message"?: string | null,"mode"?: Database["public"]['Enums']["display_mode"],"show_coach_notes"?: boolean,"track_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"workout_id"?: string | null
+                    "gym_id": string,"message"?: string | null,"mode"?: Database["public"]['Enums']["display_mode"],"show_checked_in"?: boolean,"show_coach_notes"?: boolean,"track_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"workout_id"?: string | null
                   }
                   Update: {
-                    "gym_id"?: string,"message"?: string | null,"mode"?: Database["public"]['Enums']["display_mode"],"show_coach_notes"?: boolean,"track_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"workout_id"?: string | null
+                    "gym_id"?: string,"message"?: string | null,"mode"?: Database["public"]['Enums']["display_mode"],"show_checked_in"?: boolean,"show_coach_notes"?: boolean,"track_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"workout_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -327,14 +347,14 @@ isOneToOne: true
                   ]
                 },"gyms": {
                   Row: {
-                    "booking_window_days": number,"cancel_cutoff_minutes": number,"created_at": string,"id": string,"ios_program_purchase_link": boolean,"is_default": boolean,"name": string,"slug": string,"timezone": string,"updated_at": string
+                    "booking_window_days": number,"cancel_cutoff_minutes": number,"created_at": string,"id": string,"ios_program_purchase_link": boolean,"is_default": boolean,"milestone_reward": string | null,"milestone_visits": number,"name": string,"slug": string,"timezone": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "booking_window_days"?: number,"cancel_cutoff_minutes"?: number,"created_at"?: string,"id"?: string,"ios_program_purchase_link"?: boolean,"is_default"?: boolean,"name": string,"slug": string,"timezone"?: string,"updated_at"?: string
+                    "booking_window_days"?: number,"cancel_cutoff_minutes"?: number,"created_at"?: string,"id"?: string,"ios_program_purchase_link"?: boolean,"is_default"?: boolean,"milestone_reward"?: string | null,"milestone_visits"?: number,"name": string,"slug": string,"timezone"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "booking_window_days"?: number,"cancel_cutoff_minutes"?: number,"created_at"?: string,"id"?: string,"ios_program_purchase_link"?: boolean,"is_default"?: boolean,"name"?: string,"slug"?: string,"timezone"?: string,"updated_at"?: string
+                    "booking_window_days"?: number,"cancel_cutoff_minutes"?: number,"created_at"?: string,"id"?: string,"ios_program_purchase_link"?: boolean,"is_default"?: boolean,"milestone_reward"?: string | null,"milestone_visits"?: number,"name"?: string,"slug"?: string,"timezone"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -798,7 +818,7 @@ isOneToOne: false
                   ]
                 },"class_session_overview": {
                   Row: {
-                    "booked_count": number | null,"capacity": number,"coach_id": string | null,"coach_name": string | null,"ends_at": string,"gym_id": string,"id": string,"my_booking_id": string | null,"my_booking_status": Database["public"]['Enums']["booking_status"] | null,"my_waitlist_position": number | null,"notes": string | null,"schedule_id": string | null,"starts_at": string,"status": string,"title": string,"track_color": string | null,"track_id": string | null,"track_name": string | null,"waitlist_count": number | null
+                    "booked_count": number | null,"capacity": number,"checked_in_count": number | null,"coach_id": string | null,"coach_name": string | null,"ends_at": string,"gym_id": string,"id": string,"my_booking_id": string | null,"my_booking_status": Database["public"]['Enums']["booking_status"] | null,"my_waitlist_position": number | null,"notes": string | null,"schedule_id": string | null,"starts_at": string,"status": string,"title": string,"track_color": string | null,"track_id": string | null,"track_name": string | null,"waitlist_count": number | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -943,8 +963,14 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"check_in_with_code":
+{ Args: { "p_payload": string }; Returns: Json
+                           },
 "default_gym_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"freeze_membership":
+{ Args: { "p_membership": string,"p_until": string,"p_user": string }; Returns: Json
                            },
 "generate_sessions":
 { Args: { "p_from": string,"p_gym": string,"p_to": string }; Returns: number
@@ -970,10 +996,16 @@ isOneToOne: false
 "is_staff":
 { Args: { "p_gym": string }; Returns: boolean
                            },
+"my_attendance":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "my_calendar":
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "calendar_date": string,"day": number,"enrollment_id": string,"locked": boolean,"log_id": string,"program_id": string,"program_name": string,"source": string,"title": string,"track_color": string,"track_id": string,"track_name": string,"week": number,"workout_id": string
             }[]
+                           },
+"my_checkin_secret":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "report_overview":
 { Args: { "p_from": string,"p_gym": string,"p_to": string }; Returns: Json
