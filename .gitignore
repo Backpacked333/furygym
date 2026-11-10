@@ -1,0 +1,28 @@
+node_modules/
+.next/
+out/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+supabase/.branches/
+supabase/.temp/
+test-results/
+playwright-report/
+# iOS
+apps/ios/.build/
+apps/ios/Packages/*/.build/
+apps/ios/DerivedData/
+apps/ios/build/
+apps/ios/*.xcodeproj/xcuserdata/
+apps/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+apps/ios/Config/Config.xcconfig
+apps/ios/fastlane/report.xml
+apps/ios/fastlane/*.p8
+*.ipa
+*.dSYM.zip
+*.xcresult
+# confidential source documents are never committed
+*.pdf
