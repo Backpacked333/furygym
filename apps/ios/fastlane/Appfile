@@ -1,0 +1,3 @@
+# Read from the environment so nothing account-specific is committed.
+app_identifier(ENV.fetch("APP_BUNDLE_ID", "com.furyco.athletics"))
+team_id(ENV["DEVELOPMENT_TEAM"]) if ENV["DEVELOPMENT_TEAM"]

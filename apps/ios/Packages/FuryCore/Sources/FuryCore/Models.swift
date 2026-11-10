@@ -60,7 +60,7 @@ public enum CalendarSource: String, UnknownTolerant {
     case facility, program, unknown
 }
 
-public struct Gym: Codable, Equatable, Sendable, Identifiable {
+public struct Gym: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var name: String
     public var timezone: String
@@ -71,7 +71,7 @@ public struct Gym: Codable, Equatable, Sendable, Identifiable {
     public var timeZone: TimeZone { TimeZone(identifier: timezone) ?? TimeZone(identifier: "UTC")! }
 }
 
-public struct Profile: Codable, Equatable, Sendable, Identifiable {
+public struct Profile: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var email: String?
     public var fullName: String
@@ -84,7 +84,7 @@ public struct Profile: Codable, Equatable, Sendable, Identifiable {
 }
 
 /// One row of the athlete's calendar (`my_calendar`): a gym workout or a day of an enrolled program.
-public struct CalendarEntry: Codable, Equatable, Sendable, Identifiable {
+public struct CalendarEntry: Codable, Hashable, Sendable, Identifiable {
     public let calendarDate: DayDate
     public let workoutId: UUID
     public let title: String
@@ -123,7 +123,7 @@ public struct CalendarEntry: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct WorkoutItem: Codable, Equatable, Sendable, Identifiable {
+public struct WorkoutItem: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var position: Int
     public var section: String?
@@ -159,7 +159,7 @@ public struct WorkoutItem: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct Workout: Codable, Equatable, Sendable, Identifiable {
+public struct Workout: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var title: String
     public var description: String?
@@ -170,7 +170,7 @@ public struct Workout: Codable, Equatable, Sendable, Identifiable {
     public var items: [WorkoutItem] { workoutItems.sorted { ($0.position, $0.title) < ($1.position, $1.title) } }
 }
 
-public struct LogEntry: Codable, Equatable, Sendable, Identifiable {
+public struct LogEntry: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var workoutItemId: UUID?
     public var exerciseId: UUID?
@@ -190,14 +190,14 @@ public struct LogEntry: Codable, Equatable, Sendable, Identifiable {
     public var isPr: Bool
 }
 
-public struct CoachFeedback: Codable, Equatable, Sendable, Identifiable {
+public struct CoachFeedback: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var body: String
     public var createdAt: Date
 }
 
-public struct WorkoutLog: Codable, Equatable, Sendable, Identifiable {
-    public struct WorkoutRef: Codable, Equatable, Sendable {
+public struct WorkoutLog: Codable, Hashable, Sendable, Identifiable {
+    public struct WorkoutRef: Codable, Hashable, Sendable {
         public var title: String
     }
 
@@ -216,7 +216,7 @@ public struct WorkoutLog: Codable, Equatable, Sendable, Identifiable {
     public var prCount: Int { workoutLogEntries.filter(\.isPr).count }
 }
 
-public struct ClassSession: Codable, Equatable, Sendable, Identifiable {
+public struct ClassSession: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var title: String
     public var startsAt: Date
@@ -252,7 +252,7 @@ public struct ClassSession: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct MembershipPlan: Codable, Equatable, Sendable, Identifiable {
+public struct MembershipPlan: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var name: String
     public var description: String?
@@ -269,8 +269,8 @@ public struct MembershipPlan: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct Membership: Codable, Equatable, Sendable, Identifiable {
-    public struct PlanRef: Codable, Equatable, Sendable {
+public struct Membership: Codable, Hashable, Sendable, Identifiable {
+    public struct PlanRef: Codable, Hashable, Sendable {
         public var name: String
         public var kind: PlanKind
         public init(name: String, kind: PlanKind) {
@@ -303,7 +303,7 @@ public struct Membership: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct Program: Codable, Equatable, Sendable, Identifiable {
+public struct Program: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var name: String
     public var slug: String
@@ -317,7 +317,7 @@ public struct Program: Codable, Equatable, Sendable, Identifiable {
     public var graceDays: Int
 }
 
-public struct Enrollment: Codable, Equatable, Sendable, Identifiable {
+public struct Enrollment: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var programId: UUID
     public var startDate: DayDate
@@ -335,14 +335,14 @@ public struct Enrollment: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public struct Waiver: Codable, Equatable, Sendable, Identifiable {
+public struct Waiver: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var title: String
     public var body: String
     public var version: Int
 }
 
-public struct PersonalRecord: Codable, Equatable, Sendable, Identifiable {
+public struct PersonalRecord: Codable, Hashable, Sendable, Identifiable {
     public var exerciseId: UUID
     public var exerciseName: String
     public var reps: Int?
@@ -354,7 +354,7 @@ public struct PersonalRecord: Codable, Equatable, Sendable, Identifiable {
     public var id: String { "\(exerciseId.uuidString)|\(reps ?? 0)" }
 }
 
-public struct BenchmarkResult: Codable, Equatable, Sendable, Identifiable {
+public struct BenchmarkResult: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var benchmarkName: String
     public var timeSeconds: Double?
@@ -367,14 +367,14 @@ public struct BenchmarkResult: Codable, Equatable, Sendable, Identifiable {
 }
 
 /// A logged lift, for the progress chart of one exercise.
-public struct LiftSample: Codable, Equatable, Sendable {
+public struct LiftSample: Codable, Hashable, Sendable {
     public var exerciseId: UUID
     public var loadKg: Double
     public var reps: Int?
     public var performedOn: DayDate
 }
 
-public struct Payment: Codable, Equatable, Sendable, Identifiable {
+public struct Payment: Codable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public var description: String?
     public var amountCents: Int
@@ -386,8 +386,8 @@ public struct Payment: Codable, Equatable, Sendable, Identifiable {
 }
 
 /// What `submit_workout_log` returns.
-public struct LogResult: Codable, Equatable, Sendable {
-    public struct PR: Codable, Equatable, Sendable {
+public struct LogResult: Codable, Hashable, Sendable {
+    public struct PR: Codable, Hashable, Sendable {
         public var title: String
         public var loadKg: Double?
         public var reps: Int?
