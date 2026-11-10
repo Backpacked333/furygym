@@ -210,7 +210,7 @@ describe("subscriptions", () => {
     const sessionId = uid("cs");
     await handleStripeEvent(event("checkout.session.completed", { id: sessionId, mode: "subscription", payment_status: "paid", customer: uid("cus"), subscription: subId, metadata: meta }), db, stripe);
 
-    let { data: memberships } = await db.from("memberships").select("*").eq("user_id", athlete.id);
+    const { data: memberships } = await db.from("memberships").select("*").eq("user_id", athlete.id);
     expect(memberships).toHaveLength(1);
     expect(memberships![0]).toMatchObject({ status: "active", source: "stripe", stripe_subscription_id: subId, stripe_checkout_session_id: sessionId, credits_remaining: null, ends_at: null });
     expect(memberships![0].current_period_end).not.toBeNull();
