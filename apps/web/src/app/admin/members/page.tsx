@@ -23,7 +23,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
 
   return (
     <>
-      <PageHeader title="Members" description={`${members?.length ?? 0} people at ${gym.name}, athletes and staff.`} />
+      <PageHeader eyebrow="Coaching" title="Members" description={`${members?.length ?? 0} people at ${gym.name}, athletes and staff.`} />
       <form className="mb-4 flex max-w-md gap-2">
         <Input name="q" defaultValue={q} placeholder="Search by name or email" />
         <button className={buttonClass("secondary")}>Search</button>

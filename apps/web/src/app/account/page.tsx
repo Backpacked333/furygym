@@ -41,13 +41,13 @@ export default async function AccountPage() {
         </div>
       </header>
 
-      <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
+      <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted">
         Training happens in the Fury Co. app: your calendar, workout logging, class booking and progress. This page is for your membership, programs and billing.
       </p>
 
       {unsigned.map((waiver) => (
         <Card key={waiver.id} title={`Please sign: ${waiver.title}`}>
-          <div className="max-h-56 overflow-y-auto whitespace-pre-line rounded-lg border border-line bg-bg p-3 text-sm text-muted">{waiver.body}</div>
+          <div className="max-h-56 overflow-y-auto whitespace-pre-line rounded-2xl bg-raised p-3.5 text-sm text-muted">{waiver.body}</div>
           <ActionForm action={signWaiver} className="mt-4 space-y-3">
             <input type="hidden" name="waiver_id" value={waiver.id} />
             <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="agree" className="mt-1" required /> I have read and agree to the above.</label>
@@ -81,7 +81,7 @@ export default async function AccountPage() {
         ) : (
           <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
             {(plans ?? []).filter((p) => !(hasRecurring && p.kind === "recurring")).map((p) => (
-              <div key={p.id} className="rounded-lg border border-line bg-bg p-3">
+              <div key={p.id} className="rounded-2xl bg-raised p-3.5">
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-muted">{p.description}</p>
                 <div className="mt-2"><CheckoutButton body={{ kind: "plan", id: p.id }} variant="secondary">{money(p.price_cents, p.currency)}{p.billing_interval ? ` / ${p.billing_interval}` : ""}</CheckoutButton></div>
@@ -98,7 +98,7 @@ export default async function AccountPage() {
               const ended = e.status === "active" && e.expires_at != null && e.expires_at < today;
               const notStarted = e.status === "active" && e.start_date > today;
               return (
-                <li key={e.id} className="rounded-lg border border-line bg-bg p-3">
+                <li key={e.id} className="rounded-2xl bg-raised p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium">{e.programs?.name}</span>
                     <StatusBadge status={ended ? "expired" : e.status} />

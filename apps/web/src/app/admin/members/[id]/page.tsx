@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionButton, ActionForm, SubmitButton } from "@/components/forms";
-import { Badge, Card, Empty, Field, Input, LinkButton, PageHeader, Select, StatusBadge, Table, Td } from "@/components/ui";
+import { Badge, Card, Empty, Field, Input, LinkButton, PageHeader, Select, Stat, StatusBadge, Table, Td } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime, money, titleCase, todayInZone } from "@/lib/format";
 import { addFeedback, grantMembership, refundPayment, setRole, updateMembership } from "../actions";
@@ -46,6 +46,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
   return (
     <>
       <PageHeader
+        eyebrow="Athletes"
         title={profile.full_name || profile.email || "Member"}
         description={[profile.email, profile.phone].filter(Boolean).join(" · ")}
         actions={
@@ -56,12 +57,26 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="mb-4 grid gap-4 sm:grid-cols-3">
+        <Stat label="Workouts logged" value={logs?.length ?? 0} tone="accent" hint="Most recent sessions shown below" />
+        <Stat
+          label={records?.[0] ? `${records[0].exercise_name}${records[0].reps ? ` ${records[0].reps}RM` : ""}` : "Personal records"}
+          value={records?.[0] ? `${records[0].load} ${records[0].load_unit}` : "—"}
+          hint={records?.length ? `${records.length} ${records.length === 1 ? "record" : "records"} tracked` : "No lifts logged yet"}
+        />
+        <Stat
+          label="Plan"
+          value={<span className="text-[26px] leading-8">{memberships?.find((m) => ["active", "past_due", "frozen"].includes(m.status))?.membership_plans?.name ?? "None"}</span>}
+          hint={enrollments?.filter((e) => e.status === "active").map((e) => `+ ${e.programs?.name}`).join(" ") || undefined}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card title="Memberships">
           {memberships?.length ? (
             <ul className="space-y-3">
               {memberships.map((m) => (
-                <li key={m.id} className="rounded-lg border border-line bg-bg p-3 text-sm">
+                <li key={m.id} className="rounded-2xl bg-raised p-3.5 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium">{m.membership_plans?.name}</span>
                     <span className="flex items-center gap-2"><Badge>{m.source}</Badge><StatusBadge status={m.status} /></span>
@@ -123,7 +138,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
           ) : null}
         </Card>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {isAdmin && id !== user.id ? (
             <Card title="Role">
               <ActionForm action={setRole} className="flex items-end gap-3">
@@ -188,7 +203,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
                   </ul>
                   {log.notes ? <p className="mt-1 text-xs italic text-muted">“{log.notes}”</p> : null}
                   {log.coach_feedback.map((f) => (
-                    <p key={f.id} className="mt-1 rounded border border-line bg-bg px-2 py-1 text-xs">Coach: {f.body}</p>
+                    <p key={f.id} className="mt-1 rounded-xl bg-raised px-3 py-1.5 text-xs">Coach: {f.body}</p>
                   ))}
                   <ActionForm action={addFeedback} className="mt-2 flex gap-2">
                     <input type="hidden" name="log_id" value={log.id} />
@@ -204,7 +219,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
           )}
         </Card>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card title="Personal records">
             {records?.length ? (
               <Table head={["Exercise", "Reps", "Best", "Date"]}>

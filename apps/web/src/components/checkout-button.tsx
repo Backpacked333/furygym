@@ -40,7 +40,7 @@ export function ProgramPurchase({ programId, today, maxDate, priceLabel }: { pro
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-muted">Your start date</span>
-        <input type="date" value={start} min={today} max={maxDate} onChange={(e) => setStart(e.target.value)} className="rounded-lg border border-line bg-bg px-3 py-2 text-sm" />
+        <input type="date" value={start} min={today} max={maxDate} onChange={(e) => setStart(e.target.value)} className="rounded-2xl bg-raised px-4 py-2.5 text-[15px] outline-none focus:shadow-[0_0_0_2px_var(--color-accent)]" />
         <span className="mt-1 block text-xs text-muted">Day 1 of your calendar. You can change it any time before the program begins.</span>
       </label>
       <CheckoutButton body={{ kind: "program", id: programId, start_date: start }}>Enrol — {priceLabel}</CheckoutButton>

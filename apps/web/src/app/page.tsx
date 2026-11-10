@@ -28,7 +28,7 @@ export default async function Home() {
       <h2 className="mt-14 text-lg font-semibold">Online programs</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {(programs ?? []).map((p) => (
-          <Link key={p.id} href={`/programs/${p.slug}`} className="rounded-xl border border-line bg-surface p-5 hover:border-muted">
+          <Link key={p.id} href={`/programs/${p.slug}`} className="rounded-[26px] bg-surface p-5 hover:bg-raised">
             <p className="flex items-center gap-2 text-xs text-muted"><TrackDot color={p.tracks?.color} />{p.tracks?.name}</p>
             <p className="mt-1 text-lg font-semibold">{p.name}</p>
             <p className="mt-1 text-sm text-muted">{p.summary}</p>
@@ -41,7 +41,7 @@ export default async function Home() {
       <h2 className="mt-14 text-lg font-semibold">Gym memberships</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {(plans ?? []).map((p) => (
-          <div key={p.id} className="rounded-xl border border-line bg-surface p-5">
+          <div key={p.id} className="rounded-[26px] bg-surface p-5">
             <p className="font-semibold">{p.name}</p>
             <p className="mt-1 text-sm text-muted">{p.description}</p>
             <p className="mt-3 text-sm font-semibold">{money(p.price_cents, p.currency)}{p.billing_interval ? ` / ${p.billing_interval}` : ""}</p>

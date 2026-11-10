@@ -18,7 +18,7 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
 
   const [{ data: tracks }, { data: exercises }] = await Promise.all([
     supabase.from("tracks").select("id, name, kind").eq("active", true).order("position"),
-    supabase.from("exercises").select("id, name, default_metrics, video_url").eq("archived", false).order("name"),
+    supabase.from("exercises").select("id, name, category, default_metrics, video_url").eq("archived", false).order("name"),
   ]);
 
   let initial: WorkoutInput;
@@ -105,8 +105,8 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
   return (
     <>
       <PageHeader
-        title={initial.id ? "Edit workout" : initial.is_template ? "New template" : "New workout"}
-        description={programLabel ?? undefined}
+        eyebrow={programLabel ?? (initial.is_template ? "Programming · Template" : `Programming${initial.scheduled_date ? ` · ${initial.scheduled_date}` : ""}`)}
+        title={initial.title || (initial.is_template ? "New template" : "New workout")}
         actions={
           <>
             <LinkButton href={back}>Back</LinkButton>
@@ -121,7 +121,7 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
       <WorkoutEditor
         initial={initial}
         tracks={tracks ?? []}
-        exercises={(exercises ?? []) as { id: string; name: string; default_metrics: Metric[]; video_url: string | null }[]}
+        exercises={(exercises ?? []) as { id: string; name: string; category: string | null; default_metrics: Metric[]; video_url: string | null }[]}
         programLabel={programLabel}
         defaultPublishTime="18:00"
       />

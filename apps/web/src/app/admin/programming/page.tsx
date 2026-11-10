@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Badge, Card, Empty, LinkButton, PageHeader, TrackDot } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Badge, Card, Empty, LinkButton, PageHeader, TrackChip } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { addDays, formatDate, formatDateTime, startOfWeek, todayInZone } from "@/lib/format";
 import { publishState } from "@/lib/workouts";
@@ -30,65 +31,75 @@ export default async function ProgrammingPage({ searchParams }: PageProps<"/admi
   return (
     <>
       <PageHeader
-        title="Programming"
-        description="Build workouts for each track, choose what athletes record, and schedule when they publish to the app and gym display."
+        eyebrow="Programming"
+        title={`Week of ${formatDate(monday, { month: "short", day: "numeric" })}`}
         actions={
           <>
-            <LinkButton href={`/admin/programming?week=${addDays(monday, -7)}`}>← Previous</LinkButton>
+            <LinkButton href={`/admin/programming?week=${addDays(monday, -7)}`} aria-label="Previous week"><Icon name="chevronLeft" size={18} /></LinkButton>
             <LinkButton href="/admin/programming">This week</LinkButton>
-            <LinkButton href={`/admin/programming?week=${addDays(monday, 7)}`}>Next →</LinkButton>
+            <LinkButton href={`/admin/programming?week=${addDays(monday, 7)}`} aria-label="Next week"><Icon name="chevronRight" size={18} /></LinkButton>
+            <LinkButton href={`/admin/programming/workouts/new?date=${today}`} variant="primary"><Icon name="plus" size={18} />New workout</LinkButton>
           </>
         }
       />
-      <p className="mb-3 text-sm text-muted">
-        Week of {formatDate(monday, { month: "long", day: "numeric", year: "numeric" })}
-      </p>
 
-      <div className="grid gap-3 lg:grid-cols-7">
-        {days.map((day) => (
-          <section key={day} className={`rounded-xl border bg-surface p-3 ${day === today ? "border-accent/60" : "border-line"}`}>
-            <h2 className="mb-2 text-xs font-semibold text-muted">
-              {formatDate(day)}
-              {day === today ? <span className="ml-1 text-accent">· today</span> : null}
-            </h2>
-            <div className="space-y-3">
-              {facilityTracks.map((track) => {
+      {/* Track rows × day columns. Each cell is a workout card or an empty slot. */}
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-[1040px] grid-cols-[120px_repeat(7,minmax(0,1fr))] gap-3">
+          <div />
+          {days.map((day) => (
+            <div key={day} className={`px-1 text-[13px] font-semibold ${day === today ? "text-accent" : "text-muted"}`}>
+              {formatDate(day, { weekday: "short", day: "numeric" })}
+            </div>
+          ))}
+          {facilityTracks.map((track) => (
+            <div key={track.id} className="contents">
+              <div className="pt-2"><TrackChip name={track.name} color={track.color} /></div>
+              {days.map((day) => {
                 const list = (workouts ?? []).filter((w) => w.scheduled_date === day && w.track_id === track.id);
                 return (
-                  <div key={track.id}>
-                    <p className="mb-1 flex items-center gap-1.5 text-xs text-muted"><TrackDot color={track.color} />{track.name}</p>
+                  <div key={day} className="flex min-h-28 flex-col gap-2">
                     {list.map((w) => {
                       const state = publishState(w);
                       return (
-                        <Link key={w.id} href={`/admin/programming/workouts/${w.id}`} className="mb-1 block rounded-lg border border-line bg-raised p-2 hover:border-muted">
-                          <span className="block text-sm font-medium leading-tight">{w.title}</span>
-                          <span className="mt-1 flex items-center justify-between gap-1 text-xs text-muted">
-                            <span>{w.workout_items.length} item{w.workout_items.length === 1 ? "" : "s"}</span>
-                            <Badge tone={state === "live" ? "good" : state === "scheduled" ? "warn" : "neutral"}>
-                              {state === "live" ? "Live" : state === "scheduled" ? "Scheduled" : "Draft"}
-                            </Badge>
+                        <Link
+                          key={w.id}
+                          href={`/admin/programming/workouts/${w.id}`}
+                          className={`flex flex-1 flex-col gap-2 rounded-2xl bg-surface p-3 hover:bg-raised ${state === "scheduled" ? "shadow-[inset_0_0_0_1.5px_var(--color-accent)]" : ""}`}
+                        >
+                          <Badge tone={state === "live" ? "good" : state === "scheduled" ? "accent" : "neutral"}>
+                            {state === "live" ? <Icon name="check" size={12} /> : state === "scheduled" ? <Icon name="clock" size={12} /> : null}
+                            {state === "live" ? "Published" : state === "scheduled" ? "Scheduled" : "Draft"}
+                          </Badge>
+                          <span className="text-sm font-semibold leading-tight">{w.title}</span>
+                          <span className="mt-auto text-xs text-muted">
+                            {state === "scheduled" ? `Publishes ${formatDateTime(w.publish_at, gym.timezone)}` : `${w.workout_items.length} ${w.workout_items.length === 1 ? "block" : "blocks"}`}
                           </span>
-                          {state === "scheduled" ? <span className="mt-1 block text-[11px] text-muted">Publishes {formatDateTime(w.publish_at, gym.timezone)}</span> : null}
                         </Link>
                       );
                     })}
-                    <Link href={`/admin/programming/workouts/new?date=${day}&track=${track.id}`} className="block rounded-lg border border-dashed border-line px-2 py-1 text-center text-xs text-muted hover:border-muted hover:text-ink">
-                      + Add
+                    <Link
+                      href={`/admin/programming/workouts/new?date=${day}&track=${track.id}`}
+                      aria-label={`Add ${track.name} workout for ${formatDate(day)}`}
+                      className={`flex items-center justify-center rounded-2xl text-faint shadow-[inset_0_0_0_1px_var(--color-line)] hover:text-ink ${list.length ? "h-8" : "flex-1"}`}
+                    >
+                      <Icon name="plus" size={16} />
+                      <span className="sr-only">+ Add</span>
                     </Link>
                   </div>
                 );
               })}
             </div>
-          </section>
-        ))}
+          ))}
+        </div>
       </div>
 
       <Card title="Templates" className="mt-6" actions={<LinkButton small href="/admin/programming/workouts/new?template=1">New template</LinkButton>}>
         {templates?.length ? (
           <ul className="divide-y divide-line">
             {templates.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="inline-flex items-center gap-2 text-sm"><TrackDot color={t.tracks?.color} />{t.title}</span>
+              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                <span className="inline-flex items-center gap-3"><TrackChip name={t.tracks?.name} color={t.tracks?.color} /><span className="font-semibold">{t.title}</span></span>
                 <span className="flex gap-2">
                   <LinkButton small href={`/admin/programming/workouts/new?from=${t.id}&date=${today}`}>Use for a date</LinkButton>
                   <LinkButton small variant="ghost" href={`/admin/programming/workouts/${t.id}`}>Edit</LinkButton>

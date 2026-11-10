@@ -18,8 +18,8 @@ export default async function ProgramsPage() {
 
   return (
     <>
-      <PageHeader title="Online programs" description="Time-bound programs athletes buy and start on their own date. Each athlete's calendar is built from their start date." />
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <PageHeader eyebrow="Coaching" title="Online programs" description="Time-bound programs athletes buy and start on their own date. Each athlete's calendar is built from their start date." />
+      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <Card title="Programs">
           {programs?.length ? (
             <Table head={["Program", "Length", "Workouts", "Price", "Active athletes", "Status"]}>

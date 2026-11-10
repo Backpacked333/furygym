@@ -9,7 +9,7 @@ export function ReturnToApp({ href }: { href: string }) {
     return () => clearTimeout(timer);
   }, [href]);
   return (
-    <a href={href} className="mt-6 inline-flex rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink">
+    <a href={href} className="mt-6 inline-flex btn-filled rounded-full px-5 py-2.5 text-[15px] font-semibold text-white">
       Return to the Fury Co. app
     </a>
   );

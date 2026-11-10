@@ -14,10 +14,10 @@ export function ActionForm({ action, children, className, ...props }: { action: 
     <form action={formAction} className={className} {...props}>
       {children}
       {state?.error ? (
-        <p role="alert" className="mt-3 rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">{state.error}</p>
+        <p role="alert" className="mt-3 rounded-2xl bg-bad/15 px-3 py-2 text-sm text-bad">{state.error}</p>
       ) : null}
       {state?.ok ? (
-        <p role="status" className="mt-3 rounded-lg border border-good/40 bg-good/10 px-3 py-2 text-sm text-good">{state.ok}</p>
+        <p role="status" className="mt-3 rounded-2xl bg-good/15 px-3 py-2 text-sm text-good">{state.ok}</p>
       ) : null}
     </form>
   );

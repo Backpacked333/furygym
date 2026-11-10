@@ -29,6 +29,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
   return (
     <>
       <PageHeader
+        eyebrow="Online Programs"
         title={program.name}
         description={`${program.duration_weeks} weeks · ${program.days_per_week} sessions a week · ${placed?.length ?? 0} of ${total} workouts written`}
         actions={
@@ -63,7 +64,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                     return (
                       <td key={d} className="align-top">
                         {placedWorkout ? (
-                          <div className="rounded-lg border border-line bg-raised p-2">
+                          <div className="rounded-2xl bg-raised p-2.5">
                             <Link href={`/admin/programming/workouts/${placedWorkout.workout_id}`} className="block text-xs font-medium leading-tight hover:underline">
                               {placedWorkout.workouts?.title}
                             </Link>
@@ -80,7 +81,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                         ) : (
                           <Link
                             href={`/admin/programming/workouts/new?program=${id}&week=${w + 1}&day=${d + 1}`}
-                            className="block rounded-lg border border-dashed border-line px-2 py-3 text-center text-xs text-muted hover:border-muted hover:text-ink"
+                            className="block rounded-2xl shadow-[inset_0_0_0_1px_var(--color-line)] px-2 py-3 text-center text-xs text-muted hover:border-muted hover:text-ink"
                           >
                             + Add
                           </Link>
@@ -95,7 +96,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
         </div>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Settings">
           <ActionForm action={saveProgram} className="space-y-3">
             <input type="hidden" name="id" value={program.id} />

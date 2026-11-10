@@ -30,9 +30,9 @@ export default async function SchedulePage() {
 
   return (
     <>
-      <PageHeader title="Class schedule" description={`Next 14 days. Athletes can book up to ${gym.booking_window_days} days ahead and cancel without penalty until ${gym.cancel_cutoff_minutes} minutes before class.`} />
+      <PageHeader eyebrow="Classes" title="Class schedule" description={`Next 14 days. Athletes can book up to ${gym.booking_window_days} days ahead and cancel without penalty until ${gym.cancel_cutoff_minutes} minutes before class.`} />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_24rem]">
         <div className="space-y-4">
           {byDay.size === 0 ? <Empty>No upcoming classes. Generate sessions from the weekly schedule.</Empty> : null}
           {[...byDay.entries()].map(([day, list]) => (
@@ -55,7 +55,7 @@ export default async function SchedulePage() {
         </div>
 
         {isAdmin ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card title="Weekly schedule">
               {schedules?.length ? (
                 <ul className="divide-y divide-line text-sm">

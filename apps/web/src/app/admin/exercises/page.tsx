@@ -42,8 +42,8 @@ export default async function ExercisesPage() {
 
   return (
     <>
-      <PageHeader title="Exercise library" description="Movements with cues, instruction video and the fields athletes record by default. Pick them in the workout builder." />
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <PageHeader eyebrow="Coaching" title="Exercise library" description="Movements with cues, instruction video and the fields athletes record by default. Pick them in the workout builder." />
+      <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <Card title={`${exercises?.length ?? 0} exercises`}>
           {exercises?.length ? (
             <ul className="divide-y divide-line">
@@ -58,7 +58,7 @@ export default async function ExercisesPage() {
                         {(e.default_metrics as Metric[]).map((m) => <Badge key={m}>{METRIC_LABELS[m]}</Badge>)}
                       </span>
                     </summary>
-                    <ActionForm action={saveExercise} className="mt-3 rounded-lg border border-line bg-bg p-3">
+                    <ActionForm action={saveExercise} className="mt-3 rounded-2xl bg-raised p-3.5">
                       <ExerciseFields exercise={{ ...e, default_metrics: e.default_metrics as Metric[] }} />
                       <div className="mt-3"><SubmitButton small>Save</SubmitButton></div>
                     </ActionForm>

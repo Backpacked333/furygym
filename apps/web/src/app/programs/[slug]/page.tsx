@@ -35,9 +35,9 @@ export default async function ProgramPage({ params }: PageProps<"/programs/[slug
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{program.name}</h1>
       <p className="mt-2 text-muted">{program.summary}</p>
       <dl className="mt-6 grid grid-cols-3 gap-3 text-center text-sm">
-        <div className="rounded-xl border border-line bg-surface p-3"><dt className="text-xs text-muted">Length</dt><dd className="font-semibold">{program.duration_weeks} weeks</dd></div>
-        <div className="rounded-xl border border-line bg-surface p-3"><dt className="text-xs text-muted">Sessions</dt><dd className="font-semibold">{program.days_per_week} a week</dd></div>
-        <div className="rounded-xl border border-line bg-surface p-3"><dt className="text-xs text-muted">Price</dt><dd className="font-semibold">{money(program.price_cents, program.currency)}</dd></div>
+        <div className="rounded-[20px] bg-surface p-3.5"><dt className="text-xs text-muted">Length</dt><dd className="font-semibold">{program.duration_weeks} weeks</dd></div>
+        <div className="rounded-[20px] bg-surface p-3.5"><dt className="text-xs text-muted">Sessions</dt><dd className="font-semibold">{program.days_per_week} a week</dd></div>
+        <div className="rounded-[20px] bg-surface p-3.5"><dt className="text-xs text-muted">Price</dt><dd className="font-semibold">{money(program.price_cents, program.currency)}</dd></div>
       </dl>
       {program.description ? <p className="mt-6 whitespace-pre-line text-sm leading-relaxed">{program.description}</p> : null}
       <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted">

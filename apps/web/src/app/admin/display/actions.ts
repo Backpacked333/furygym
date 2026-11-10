@@ -18,6 +18,7 @@ export async function saveDisplay(_: ActionState, form: FormData): Promise<Actio
       workout_id: mode === "manual" ? workoutId : null,
       message: optional(form, "message"),
       show_coach_notes: checked(form, "show_coach_notes"),
+      show_checked_in: checked(form, "show_checked_in"),
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     })

@@ -57,14 +57,14 @@ export default async function PlansPage() {
 
   return (
     <>
-      <PageHeader title="Plans & settings" description="Membership plans, the waiver athletes sign, and gym-wide rules." />
+      <PageHeader eyebrow="Business" title="Plans & settings" description="Membership plans, the waiver athletes sign, and gym-wide rules." />
       {!paymentsOn ? (
-        <p className="mb-4 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+        <p className="mb-4 rounded-2xl bg-warn/15 px-3 py-2 text-sm text-warn">
           Stripe is not connected, so athletes cannot pay yet. You can still add memberships by hand from a member&apos;s page.
         </p>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card title="Membership plans">
           {plans?.length ? (
             <ul className="divide-y divide-line">
@@ -79,7 +79,7 @@ export default async function PlansPage() {
                         {!p.active ? <Badge tone="warn">Off sale</Badge> : null}
                       </span>
                     </summary>
-                    <ActionForm action={savePlan} className="mt-3 rounded-lg border border-line bg-bg p-3">
+                    <ActionForm action={savePlan} className="mt-3 rounded-2xl bg-raised p-3.5">
                       <PlanFields plan={p} />
                       <div className="mt-3"><SubmitButton small>Save plan</SubmitButton></div>
                     </ActionForm>

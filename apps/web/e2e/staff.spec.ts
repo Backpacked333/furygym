@@ -15,23 +15,25 @@ test.describe("coach publishes a workout", () => {
     await page.getByLabel("Title").first().fill(liveTitle);
     await page.getByLabel("Track").selectOption({ label: "Strength" });
     await page.getByRole("textbox", { name: /^Overview/ }).fill("Heavy pulls, then carries.");
-    await page.getByRole("button", { name: "+ Add item" }).click();
+    // adding a movement from the library creates a block with its title and logging fields
+    await page.getByLabel("Search exercises").fill("dead");
+    await page.getByRole("button", { name: /Deadlift/ }).click();
 
     const item = page.getByTestId("workout-item").first();
-    await item.getByLabel("Section").fill("Strength");
-    // choosing a library exercise fills in the title and the fields athletes record
-    await item.getByLabel("Exercise (library)").selectOption({ label: "Deadlift" });
     await expect(item.getByLabel("Title")).toHaveValue("Deadlift");
-    await expect(item.getByRole("button", { name: "Load" })).toHaveAttribute("aria-pressed", "true");
-    await expect(item.getByRole("button", { name: "Reps" })).toHaveAttribute("aria-pressed", "true");
+    await item.getByLabel("Section").fill("Strength");
     await item.getByLabel("Prescription").fill("5 x 3 @ 85%");
-    await item.getByRole("button", { name: "RPE" }).click();
+    // the inspector controls what athletes record for the selected block
+    await expect(page.getByRole("heading", { name: "Logging · Block A" })).toBeVisible();
+    await expect(page.getByRole("switch", { name: "Load" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("switch", { name: "Reps" })).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("switch", { name: "RPE" }).click();
 
     await page.getByText("Publish now").click();
     await page.getByRole("button", { name: "Save workout" }).click();
     await expect(page).toHaveURL(/\/admin\/programming\?week=/);
     const card = page.getByRole("link", { name: new RegExp(liveTitle) });
-    await expect(card).toContainText("Live");
+    await expect(card).toContainText("Published");
 
     // --- build and schedule for tomorrow evening --------------------------------------------
     await page.goto(`/admin/programming/workouts/new?date=${today}`, { waitUntil: "networkidle" });
