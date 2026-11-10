@@ -124,6 +124,10 @@ export default async function PlansPage() {
               <Field label="Booking opens (days ahead)"><Input name="booking_window_days" type="number" min={1} max={365} defaultValue={gym.booking_window_days} /></Field>
               <Field label="Free cancellation until (minutes before)"><Input name="cancel_cutoff_minutes" type="number" min={0} defaultValue={gym.cancel_cutoff_minutes} /></Field>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Attendance milestone (visits)" hint="The app counts check-ins toward this."><Input name="milestone_visits" type="number" min={1} max={1000} defaultValue={gym.milestone_visits} /></Field>
+              <Field label="Milestone reward" hint="Shown as “20 visits earns …”. Leave empty for no reward."><Input name="milestone_reward" defaultValue={gym.milestone_reward ?? ""} placeholder="a free Fury Co. tee" /></Field>
+            </div>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" name="ios_program_purchase_link" defaultChecked={gym.ios_program_purchase_link} className="mt-1" />
               <span>Show the “buy on the web” link for online programs in the iOS app<span className="block text-xs text-muted">US App Store only. Switch off if App Review objects; athletes can still buy on the website.</span></span>

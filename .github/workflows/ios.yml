@@ -3,7 +3,9 @@ name: iOS
 # macOS runners bill at ten times the Linux rate on private repositories, so this only runs
 # when the iOS app itself changes.
 on:
+  # Pushes to a branch with an open pull request are covered by the pull_request run.
   push:
+    branches: [main]
     paths:
       - "apps/ios/**"
       - ".github/workflows/ios.yml"

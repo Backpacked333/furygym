@@ -51,7 +51,13 @@ Specific protections, each covered by a test:
   withheld by the database, not just hidden in the app.
 - Bookings, memberships, enrollments and payments cannot be written by clients. Athletes act through
   functions that check the rules; money tables are written only by the Stripe webhook.
-- The TV display reads through a secret token and exposes only workout content.
+- The TV display reads through a secret token and exposes only workout content, the next class
+  and a checked-in count. Athletes' first names appear only if staff switch that on.
+- The check-in QR code changes every 30 seconds. It is derived on the phone from a per-athlete
+  secret that only that athlete can read, and verified in the database, so a screenshot stops
+  working within about a minute.
+- Athletes change their own membership (freeze, resume, cancel) through one server endpoint that
+  updates Stripe first and the database second, so billing and access cannot disagree.
 - Role, membership, enrollment, plan and program changes are written to an audit log.
 
 ## Payments and the App Store

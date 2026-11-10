@@ -1,7 +1,9 @@
 name: Backend and web
 
 on:
+  # Pushes to a branch with an open pull request are covered by the pull_request run.
   push:
+    branches: [main]
     paths-ignore:
       - "apps/ios/**"
       - "docs/**"

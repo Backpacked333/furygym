@@ -70,6 +70,8 @@ export async function saveGymSettings(_: ActionState, form: FormData): Promise<A
       booking_window_days: integer(form, "booking_window_days") ?? gym.booking_window_days,
       cancel_cutoff_minutes: integer(form, "cancel_cutoff_minutes") ?? gym.cancel_cutoff_minutes,
       ios_program_purchase_link: checked(form, "ios_program_purchase_link"),
+      milestone_visits: Math.min(1000, Math.max(1, integer(form, "milestone_visits") ?? gym.milestone_visits)),
+      milestone_reward: text(form, "milestone_reward") || null,
     })
     .eq("id", gym.id);
   if (error) return fail(error);

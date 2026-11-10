@@ -7,8 +7,8 @@ other gyms yet.
 | Part | Where | What it is |
 |---|---|---|
 | Backend | `supabase/` | Postgres schema, access rules, business functions, seed data, tests |
-| Staff console & web | `apps/web/` | Next.js: programming, classes, members, plans, TV display, reports, checkout |
-| Athlete app | `apps/ios/` | SwiftUI: calendar, workout logging, class booking, progress, membership |
+| Staff console & web | `apps/web/` | Next.js: programming, classes, check-in, members, memberships, plans, TV display, revenue, checkout |
+| Athlete app | `apps/ios/` | SwiftUI: today, class booking, QR check-in, training calendar, workout logging, progress, programs, membership |
 | Docs | `docs/` | [Architecture](docs/architecture.md) · [Scope](docs/mvp-scope.md) · [Launch checklist](docs/launch-checklist.md) |
 
 ## Run it locally
@@ -45,7 +45,8 @@ Open http://localhost:3000 and sign in with a demo account (password `FuryDemo12
 | `sam@furyco.test` | Athlete on a 10-class pack |
 | `jordan@furyco.test` | New athlete: no membership, waiver unsigned |
 
-The gym TV display for the demo data is at http://localhost:3000/display/demo-display-token.
+The gym TV display for the demo data is at http://localhost:3000/display/demo-display-token, and the
+front-desk check-in scanner is at http://localhost:3000/admin/checkin.
 
 Payments stay switched off until Stripe keys are added to `.env.local`; buying then explains that
 online payment is not available rather than failing.
@@ -70,7 +71,7 @@ To use the local stack from the simulator, use the `127.0.0.1` values at the bot
 
 | Command | Covers |
 |---|---|
-| `pnpm db:test` | Access rules per role, booking and waitlist (including races), program calendars, logging and PRs, display, reports |
+| `pnpm db:test` | Access rules per role, booking and waitlist (including races), program calendars, logging and PRs, display, reports, QR check-in codes, freezes |
 | `pnpm web:test` | Stripe webhook against the real database with a fake Stripe, checkout building, time zones, CSV |
 | `pnpm web:e2e` | Browser tests: coach publishes → display and athlete see it; check-in; reports; signup and waiver |
 | `swift test --package-path apps/ios/Packages/FuryCore` | iOS rules and models, decoded from responses captured from the real backend |

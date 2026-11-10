@@ -17,15 +17,16 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Coupons | Built, unverified | Stripe promotion codes are enabled at checkout; create the codes in Stripe. Needs live Stripe keys to try |
 | Refunds | Built | Admin refunds from a member's page; a full refund takes back the pack or program |
 | Class schedule, reservations, capacity, waitlist, cancellations | Built | Waitlist promotes automatically; late cancels keep the class credit |
-| Attendance / check-in | Built | Staff check in from the roster. No self check-in kiosk |
+| Attendance / check-in | Built | Athletes show a rotating QR code in the app; the front desk scans it at `/admin/checkin` (handheld scanner or camera). Staff can also check in from the roster |
 | Digital waiver and consent record | Built | Typed-name signature with time, IP and device; re-sign on new version |
-| Membership freeze and cancel | Built | Freeze pauses Stripe collection; cancel now or at period end |
+| Membership freeze and cancel | Built | Staff from the console; athletes from the app (freeze 2, 4 or 8 weeks, resume early, cancel at period end). A freeze pauses Stripe collection and releases bookings in the window |
 | Failed-payment recovery | Built | Stripe retries and emails; membership shows past due and keeps access meanwhile |
 | Receipts | Stripe | Stripe emails receipts once enabled in the Stripe dashboard |
 | Taxes | Built, off by default | Set `STRIPE_AUTOMATIC_TAX=true` after configuring Stripe Tax |
 | Payout reconciliation | Built | Payouts and per-payment fees recorded from Stripe |
 | Notifications | Partial | Local class reminders on the phone. No email/SMS/push from the server yet |
-| Referrals, attendance reward milestones | Not built | |
+| Attendance milestone | Partial | The app counts check-ins toward a reward set in the console (Plans & settings; default every 20 visits). Handing the reward over is manual |
+| Referrals | Not built | |
 
 ### B. Coach programming and facility display
 
@@ -36,7 +37,7 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Reusable templates | Built | |
 | Training blocks / program calendars | Built | Week × day grid for online programs |
 | Scheduled publishing | Built | Draft, publish now, or publish at a set gym time |
-| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off |
+| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off. Shows the next class, a countdown and how many are checked in; names are opt-in |
 | Strength, Engine and Selection tracks | Built | More tracks are rows, not code |
 
 ### C. Athlete profile and training experience (iOS)
@@ -49,6 +50,8 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | History, PRs, benchmarks, adherence, charts | Built | |
 | Coach feedback | Built | Coaches write it in the console; athletes read it in the app |
 | Unified profile, purchase history, entitlements | Built | |
+| Membership self-service | Built | Plan, renewal date, class credits, freeze, resume, cancel, billing portal |
+| Add a booked class to the phone calendar | Built | Write-only calendar permission, asked on first use |
 | In-app account deletion | Built | Required by the App Store; stops billing first |
 
 The iOS screens compile and their unit tests run in CI on macOS. They have **not** been used by
@@ -102,12 +105,38 @@ These are defaults, each a setting rather than hard-coded. Change them if they a
 3. One online program is sold for real through Stripe to prove checkout, calendars and reporting.
 4. Only then move class booking and membership billing off Wodify.
 
+## Design
+
+Both clients follow the Fury design system supplied on 10 November 2026: true-black canvas, grouped
+dark surfaces, red accent, track colours (Strength red, Engine orange, Selection indigo), pill
+buttons and, on iOS, a floating tab bar with a check-in button.
+
+Where the build differs from the mockups, and why:
+
+| Mockup | Build |
+|---|---|
+| Card form and Apple Pay sheet inside the app | Stripe's hosted checkout in an in-app browser. Card data stays with Stripe; Apple Pay appears there once enabled in Stripe |
+| Buying a program inside the app | Opens the website, US storefront only, and can be switched off — Apple's rule for digital goods |
+| Drawn signature on the agreement | Typed full name, recorded with time, IP and device |
+| Foundations / Scaled / Rx tiers | Rx and Scaled, from the scaling notes coaches already write |
+| Freeze with a monthly hold fee and a yearly allowance | Free freeze of 2, 4 or 8 weeks, no allowance tracking |
+| Program priced by duration (4, 8, 12 weeks) | One price per program |
+| Checked-in names on the TV | Off by default; a switch in Display control |
+
+Shown in the mockups and not built: Fury Hub content, referrals, reward fulfilment, the in-workout
+timer, suggested coach replies, "message class", QuickBooks sync, pairing several displays, timer
+and leaderboard display modes, and NFC check-in.
+
 ## Not yet verified
 
 Said plainly, so nothing here is mistaken for done:
 
 - **The iOS app has not been run by a person.** It builds and passes its tests in CI; nobody has
-  tapped through it. Expect layout and flow fixes in the first TestFlight round.
+  tapped through it, and every screen was rebuilt for the redesign. Expect layout and flow fixes in
+  the first TestFlight round.
+- **The check-in scanner has not read a real phone screen.** The code maths is tested on both
+  sides (app and database agree); a camera or handheld scanner reading the app's QR code off a
+  phone is still to try.
 - **No real Stripe call has been made.** Checkout and the webhook are tested against constructed
   Stripe events and a fake Stripe client. The first live test-mode purchase is still to do.
 - **The release lanes (fastlane) have never run** — they need Fury Co.'s Apple account.
