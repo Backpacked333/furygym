@@ -1,0 +1,10 @@
+[
+  {
+    "id": "194bd66c-e4a8-40c2-9ddb-adf0edddf448",
+    "name": "Fury Co. Athletics",
+    "timezone": "America/Chicago",
+    "booking_window_days": 14,
+    "cancel_cutoff_minutes": 60,
+    "ios_program_purchase_link": true
+  }
+]

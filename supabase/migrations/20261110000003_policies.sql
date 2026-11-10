@@ -26,9 +26,10 @@ create view public.class_session_overview as
       where b.session_id = s.id and b.status = 'waitlisted')::int as waitlist_count,
     mine.id as my_booking_id,
     mine.status as my_booking_status,
-    (select count(*) + 1 from public.bookings b
-      where b.session_id = s.id and b.status = 'waitlisted'
-        and mine.status = 'waitlisted' and b.booked_at < mine.booked_at)::int as my_waitlist_position
+    case when mine.status = 'waitlisted' then
+      (select count(*) + 1 from public.bookings b
+        where b.session_id = s.id and b.status = 'waitlisted' and b.booked_at < mine.booked_at)::int
+    end as my_waitlist_position
   from public.class_sessions s
   left join public.tracks t on t.id = s.track_id
   left join public.profiles c on c.id = s.coach_id

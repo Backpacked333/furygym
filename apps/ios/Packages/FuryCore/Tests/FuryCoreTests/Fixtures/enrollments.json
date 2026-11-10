@@ -1,0 +1,22 @@
+[
+  {
+    "id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "program_id": "04e6dbd2-0f23-4d87-bc6c-65e50857a9df",
+    "start_date": "2026-11-01",
+    "expires_at": "2026-12-26",
+    "status": "active",
+    "programs": {
+      "id": "04e6dbd2-0f23-4d87-bc6c-65e50857a9df",
+      "name": "Selection Prep — 6 Week",
+      "slug": "selection-prep-6",
+      "summary": "Six weeks of ruck, run and strength work to arrive ready.",
+      "currency": "usd",
+      "grace_days": 14,
+      "description": "Five sessions a week. Start any day you like — your calendar is built from your own start date. Each week unlocks on its first day, and you keep access for two weeks after the final session.",
+      "price_cents": 14900,
+      "unlock_mode": "weekly",
+      "days_per_week": 5,
+      "duration_weeks": 6
+    }
+  }
+]

@@ -78,6 +78,8 @@ describe("book_class", () => {
     const b1 = await first.client.rpc("book_class", { p_session: session.id });
     expect(b1.data.status).toBe("booked");
     expect(await credits(m1.id)).toBe(2);
+    const mine = await first.client.from("class_session_overview").select("my_booking_status, my_waitlist_position").eq("id", session.id).single();
+    expect(mine.data).toEqual({ my_booking_status: "booked", my_waitlist_position: null });
 
     const b2 = await second.client.rpc("book_class", { p_session: session.id });
     expect(b2.data.status).toBe("waitlisted");
