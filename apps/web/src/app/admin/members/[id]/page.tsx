@@ -37,7 +37,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
       .limit(8),
     supabase.from("waiver_signatures").select("signed_name, signed_at, waivers(title, version)").eq("user_id", id),
     supabase.from("membership_plans").select("id, name").eq("active", true).order("position"),
-    isAdmin ? supabase.from("payments").select("*").eq("user_id", id).order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: null }),
+    isAdmin ? supabase.from("payments").select("*").eq("user_id", id).order("paid_at", { ascending: false, nullsFirst: true }).order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: null }),
     supabase.from("personal_records").select("exercise_name, reps, load, load_unit, performed_on").eq("user_id", id).order("exercise_name"),
   ]);
   if (!member?.profiles) notFound();
