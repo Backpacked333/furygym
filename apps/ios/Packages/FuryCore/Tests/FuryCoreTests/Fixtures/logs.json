@@ -1,7 +1,7 @@
 [
   {
-    "id": "b5f812fc-164e-47a2-987d-55231ce1fb99",
-    "workout_id": "0e2cb2e2-c3b3-4997-ab1b-f1bc3655a430",
+    "id": "bb6ec212-58a1-4640-8bc1-a4fd1070046e",
+    "workout_id": "3793d592-c493-4288-b2a7-4e49f5cce36b",
     "enrollment_id": null,
     "performed_on": "2026-11-07",
     "notes": "Felt solid.",
@@ -11,7 +11,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "2ce9257a-ff73-4386-b8a8-4022994cef92",
+        "id": "84a33132-6581-41fe-8896-ea1a61d51d7d",
         "rpe": null,
         "load": 235,
         "reps": 5,
@@ -23,14 +23,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e4f76a9c-af3f-4469-92dc-a2870b3e1a2b"
+        "workout_item_id": "e8ffa326-3dd3-4981-a7c7-ac62f449df4c"
       },
       {
-        "id": "f922c3e1-34c3-419d-8f77-4dfc3492dd0c",
+        "id": "9e2e3cac-4d5e-47b3-8623-99eaf049f614",
         "rpe": null,
         "load": 235,
         "reps": 5,
@@ -42,14 +42,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e4f76a9c-af3f-4469-92dc-a2870b3e1a2b"
+        "workout_item_id": "e8ffa326-3dd3-4981-a7c7-ac62f449df4c"
       },
       {
-        "id": "887ac035-bd2f-48ea-8ef9-dc4e06df456b",
+        "id": "29b4514b-ac93-4d3f-91d1-714c1c556e8d",
         "rpe": null,
         "load": 235,
         "reps": 5,
@@ -61,14 +61,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e4f76a9c-af3f-4469-92dc-a2870b3e1a2b"
+        "workout_item_id": "e8ffa326-3dd3-4981-a7c7-ac62f449df4c"
       },
       {
-        "id": "1c76bd96-61e6-42e4-ae32-e921511fa045",
+        "id": "6f8ddb0a-d449-437e-b9bf-41ea6ae7bd8b",
         "rpe": null,
         "load": 235,
         "reps": 5,
@@ -80,14 +80,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e4f76a9c-af3f-4469-92dc-a2870b3e1a2b"
+        "workout_item_id": "e8ffa326-3dd3-4981-a7c7-ac62f449df4c"
       },
       {
-        "id": "ee9c55dd-6161-41ea-a5fe-06b83c62c69a",
+        "id": "6a2b8fbc-62d1-40ca-91eb-e107b9761400",
         "rpe": null,
         "load": 235,
         "reps": 5,
@@ -99,19 +99,19 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e4f76a9c-af3f-4469-92dc-a2870b3e1a2b"
+        "workout_item_id": "e8ffa326-3dd3-4981-a7c7-ac62f449df4c"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "5779af7b-bac0-464b-b178-2bdf0eacb511",
-    "workout_id": "0d4dc8e0-af12-47ca-a65a-7dbad289d9c7",
-    "enrollment_id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "id": "2546ed22-de2a-45f6-8ae8-d535e31c53f0",
+    "workout_id": "dfd07dd3-0c23-419a-aefb-9d88eaeadf84",
+    "enrollment_id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
     "performed_on": "2026-11-05",
     "notes": null,
     "rpe": 8.5,
@@ -120,7 +120,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "e8d2f96e-4ac9-42c3-90d8-509a4bdbadda",
+        "id": "a3bb87e5-d0c0-48b7-9104-a895624c3299",
         "rpe": null,
         "load": 32,
         "reps": null,
@@ -132,24 +132,24 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": 8800,
-        "exercise_id": "8eff9d2a-d188-456c-93b3-7857af6ba37f",
+        "exercise_id": "5e61cc5a-02d0-445b-9cab-dcecd7ead02d",
         "pace_seconds": null,
         "time_seconds": 3000,
         "benchmark_name": null,
-        "workout_item_id": "c3e269e1-11b0-46ad-bfc3-a52b248838cc"
+        "workout_item_id": "790cde47-6c35-42cb-b3ed-5ad576edf9b8"
       }
     ],
     "coach_feedback": [
       {
-        "id": "02e3a2fc-43e6-4123-b74e-6e5f1c07b951",
+        "id": "4577e6ad-3677-4783-a546-b6d3ecce1b19",
         "body": "Good week one. Keep the ruck pace honest — no shuffling.",
-        "created_at": "2026-11-10T08:49:33.350671+00:00"
+        "created_at": "2026-11-10T09:41:34.411026+00:00"
       }
     ]
   },
   {
-    "id": "0309239c-9f95-4683-bea0-8bc0c6a5f80d",
-    "workout_id": "0678dd89-8814-40b9-851c-a14849d3251d",
+    "id": "e52b5d3e-c951-4faa-bda6-d85ebb6762a9",
+    "workout_id": "5639d6c4-340e-47fd-acf2-e350168aed8a",
     "enrollment_id": null,
     "performed_on": "2026-11-04",
     "notes": "Felt solid.",
@@ -159,7 +159,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "0260b3cb-d52f-4e85-ac57-0d8cf95fa3a1",
+        "id": "8c041ec9-895c-4dab-95e8-fd69f6c522c5",
         "rpe": null,
         "load": 225,
         "reps": 5,
@@ -171,14 +171,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "07cd079f-1bca-4ceb-939a-79a852ddd562"
+        "workout_item_id": "e6c3ec22-f0e7-443e-a6b3-9b6d19449f05"
       },
       {
-        "id": "4a191230-9542-4a14-88c3-e4986359cb54",
+        "id": "d942b76a-4e8e-47e4-9996-c926a20802f1",
         "rpe": null,
         "load": 225,
         "reps": 5,
@@ -190,14 +190,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "07cd079f-1bca-4ceb-939a-79a852ddd562"
+        "workout_item_id": "e6c3ec22-f0e7-443e-a6b3-9b6d19449f05"
       },
       {
-        "id": "d1a2d00b-b62b-49b4-8e07-2aa5ee5db8c3",
+        "id": "f97851bb-7bb4-4098-bc61-e2feed35d166",
         "rpe": null,
         "load": 225,
         "reps": 5,
@@ -209,14 +209,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "07cd079f-1bca-4ceb-939a-79a852ddd562"
+        "workout_item_id": "e6c3ec22-f0e7-443e-a6b3-9b6d19449f05"
       },
       {
-        "id": "7a626b06-09c1-40a0-826a-03c0005057fa",
+        "id": "8ce746f0-12be-46fc-b743-f497d757b9ba",
         "rpe": null,
         "load": 225,
         "reps": 5,
@@ -228,14 +228,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "07cd079f-1bca-4ceb-939a-79a852ddd562"
+        "workout_item_id": "e6c3ec22-f0e7-443e-a6b3-9b6d19449f05"
       },
       {
-        "id": "b78e720e-96e6-4dc5-9185-1c2cf4cae7e7",
+        "id": "f075dd41-3769-454b-a263-4ad8f4bd9b30",
         "rpe": null,
         "load": 225,
         "reps": 5,
@@ -247,19 +247,19 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "07cd079f-1bca-4ceb-939a-79a852ddd562"
+        "workout_item_id": "e6c3ec22-f0e7-443e-a6b3-9b6d19449f05"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "b14bfe57-0f06-4090-b102-f9409415770c",
-    "workout_id": "0acdaf96-7ced-4331-9b1d-d3f2a21b7b0d",
-    "enrollment_id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "id": "8f992fe6-873b-4f23-b355-6d02a71068a8",
+    "workout_id": "de7fd994-fe97-4593-b71c-dc4d743135d6",
+    "enrollment_id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
     "performed_on": "2026-11-04",
     "notes": null,
     "rpe": 8,
@@ -268,7 +268,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "8f548e78-fa7b-43e2-8300-a67ba65a5588",
+        "id": "a443ce71-66dd-42d3-984d-d57f28dd5f2e",
         "rpe": null,
         "load": null,
         "reps": null,
@@ -284,15 +284,15 @@
         "pace_seconds": null,
         "time_seconds": 2760,
         "benchmark_name": null,
-        "workout_item_id": "21db0953-6511-4d48-98e9-e456066b8151"
+        "workout_item_id": "8f0e29be-4c60-47a2-890e-a68dc927d694"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "583b7685-3512-4cda-9d3f-f2b4a1d3fe18",
-    "workout_id": "3a8acac4-3a18-400a-b815-523db4022eb0",
-    "enrollment_id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "id": "9dd6137a-d281-4460-ad97-93d1bd5e56f8",
+    "workout_id": "c63e1c9a-08d8-4dde-ac91-73c184143cf5",
+    "enrollment_id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
     "performed_on": "2026-11-03",
     "notes": null,
     "rpe": 7.5,
@@ -301,7 +301,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "78424818-1190-4f88-8a43-78d4be7c225b",
+        "id": "ec39615b-80cb-4a53-b788-02c5c735f823",
         "rpe": null,
         "load": null,
         "reps": null,
@@ -313,19 +313,19 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": 7200,
-        "exercise_id": "000d81da-0155-44fc-b28b-6f0663356d44",
+        "exercise_id": "c1c1fbf2-9329-4601-bd52-b4fb85bcce89",
         "pace_seconds": null,
         "time_seconds": 2520,
         "benchmark_name": null,
-        "workout_item_id": "88b6f60f-3ce9-472a-bd47-0ed468550b35"
+        "workout_item_id": "9771d3cc-e06c-4fb6-b2d0-03727e356dae"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "dc0081ab-f089-40a4-a947-a13f62b7c880",
-    "workout_id": "0ac978e5-8a2f-43db-bc3d-7dabaadfc927",
-    "enrollment_id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "id": "e7befde1-7590-47dc-9006-607ba1e31504",
+    "workout_id": "1721e33c-206d-4df0-b945-99962d11f88b",
+    "enrollment_id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
     "performed_on": "2026-11-02",
     "notes": null,
     "rpe": 7,
@@ -334,7 +334,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "0498adea-dd94-4bf6-915c-1f66b1bdde25",
+        "id": "4431aef1-bb5b-4da5-ae83-c874fd47ecae",
         "rpe": null,
         "load": 275,
         "reps": 5,
@@ -346,14 +346,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "4e1a55e0-c137-48f0-922f-ad9805d49134",
+        "exercise_id": "40362fd3-c38f-4a95-a5a1-8a76e937a73d",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "f211cae8-3d39-40a3-99c9-00f4dd9c5cd0"
+        "workout_item_id": "79b3fcd0-aab9-4673-8624-5c131e8288b8"
       },
       {
-        "id": "536c43e1-7f20-4fd1-804c-7b7d06f7a070",
+        "id": "a24f6af7-c77f-4b66-8594-50222af211fa",
         "rpe": null,
         "load": null,
         "reps": 5,
@@ -365,19 +365,19 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "54397d58-35fc-47be-9185-0e09dbe44d5c",
+        "exercise_id": "554872d5-9201-4dae-a1b5-3eb464d8003d",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "bd22bc50-ad05-426b-828d-084a6b488dc4"
+        "workout_item_id": "d6e10d41-a87b-4427-94f6-5cd960aa3bb1"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "fb2b993f-7c59-4fb2-9aa9-4c45513a41f0",
-    "workout_id": "33bb39b9-b078-4cf5-8637-ccfdc606ee7d",
-    "enrollment_id": "08227c74-d507-4353-b056-ea1af11c9891",
+    "id": "98733701-6bf0-4a68-9b7e-deaff3b21963",
+    "workout_id": "fc8c063d-edc8-45ed-9eb0-6810b1b29680",
+    "enrollment_id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
     "performed_on": "2026-11-01",
     "notes": null,
     "rpe": 6.5,
@@ -386,7 +386,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "bc7321aa-98fe-4b6b-8627-ac0ec12b01ea",
+        "id": "ee65e61b-a382-459d-aa1f-bed33c7adbf8",
         "rpe": null,
         "load": 32,
         "reps": null,
@@ -398,18 +398,18 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": 5600,
-        "exercise_id": "8eff9d2a-d188-456c-93b3-7857af6ba37f",
+        "exercise_id": "5e61cc5a-02d0-445b-9cab-dcecd7ead02d",
         "pace_seconds": null,
         "time_seconds": 2040,
         "benchmark_name": null,
-        "workout_item_id": "05b3ceb7-abec-460a-b45b-713a1a00ecb2"
+        "workout_item_id": "5d0dc2b0-b4e3-4d1a-ac95-4dd0b41476e4"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "287a8a14-488d-466d-af41-e966afffb7e0",
-    "workout_id": "27ecc392-9a46-464f-b4ec-432cea6e28d0",
+    "id": "44be40d5-099a-4163-9e50-79824654ffce",
+    "workout_id": "9424baa9-064a-4403-9f26-93a3588e29ee",
     "enrollment_id": null,
     "performed_on": "2026-11-01",
     "notes": "Felt solid.",
@@ -419,7 +419,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "de5c4581-d2b0-4985-a87d-8d430538ad88",
+        "id": "6435502c-8128-4085-8cf0-9ceee6e6a513",
         "rpe": null,
         "load": 215,
         "reps": 5,
@@ -431,14 +431,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "30b861f0-d561-4885-a9b8-cdbb5406d3fc"
+        "workout_item_id": "cb0dc850-ea7e-454f-ac79-bfc8d14f1c3a"
       },
       {
-        "id": "79e3715e-d99f-471e-933d-0f64fc3e6674",
+        "id": "754b5e74-e000-48de-b9d6-4032f417d0de",
         "rpe": null,
         "load": 215,
         "reps": 5,
@@ -450,14 +450,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "30b861f0-d561-4885-a9b8-cdbb5406d3fc"
+        "workout_item_id": "cb0dc850-ea7e-454f-ac79-bfc8d14f1c3a"
       },
       {
-        "id": "bbc475dc-32e8-4f0b-b132-8da90a2a374d",
+        "id": "1af5dc50-806d-461d-9c20-e33d5bff0308",
         "rpe": null,
         "load": 215,
         "reps": 5,
@@ -469,14 +469,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "30b861f0-d561-4885-a9b8-cdbb5406d3fc"
+        "workout_item_id": "cb0dc850-ea7e-454f-ac79-bfc8d14f1c3a"
       },
       {
-        "id": "56f05149-614d-4e5e-af27-217a969c488a",
+        "id": "a62e2e52-de0d-4ecb-b906-12b7542bb785",
         "rpe": null,
         "load": 215,
         "reps": 5,
@@ -488,14 +488,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "30b861f0-d561-4885-a9b8-cdbb5406d3fc"
+        "workout_item_id": "cb0dc850-ea7e-454f-ac79-bfc8d14f1c3a"
       },
       {
-        "id": "6a47d0ad-23ab-43c2-87dc-0acf99e0bd40",
+        "id": "4e7bd4ba-2b12-4073-add3-d406c38e81dc",
         "rpe": null,
         "load": 215,
         "reps": 5,
@@ -507,18 +507,18 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "30b861f0-d561-4885-a9b8-cdbb5406d3fc"
+        "workout_item_id": "cb0dc850-ea7e-454f-ac79-bfc8d14f1c3a"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "58003d5e-1b4f-48c3-8920-1a2951b13714",
-    "workout_id": "18194c2d-a50d-4a74-ae01-1b35539db078",
+    "id": "43a9f5c3-2e07-43f9-9c4c-c2165fd9f1bf",
+    "workout_id": "9a831ae0-33fc-4df4-bb19-09e08fa6ab56",
     "enrollment_id": null,
     "performed_on": "2026-10-29",
     "notes": "Felt solid.",
@@ -528,7 +528,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "811bc487-29da-4317-87e1-3a0c6d193f0b",
+        "id": "e8af6373-6658-4aa2-9cba-4d09aa5f70b7",
         "rpe": null,
         "load": 205,
         "reps": 5,
@@ -540,14 +540,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "25d9c310-ecf7-44d0-9496-d5d118e6f973"
+        "workout_item_id": "6b127ca8-f28e-485b-bbb9-9f3e7f130d24"
       },
       {
-        "id": "56182886-2c55-4590-bec0-fe79c8a6e20d",
+        "id": "c3d656b6-db02-46a2-89ca-a084f1328f0e",
         "rpe": null,
         "load": 205,
         "reps": 5,
@@ -559,14 +559,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "25d9c310-ecf7-44d0-9496-d5d118e6f973"
+        "workout_item_id": "6b127ca8-f28e-485b-bbb9-9f3e7f130d24"
       },
       {
-        "id": "17590ed3-e9d0-4440-b529-d836297f9d32",
+        "id": "9d1464e2-0281-4616-9f07-cd327579a0b1",
         "rpe": null,
         "load": 205,
         "reps": 5,
@@ -578,14 +578,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "25d9c310-ecf7-44d0-9496-d5d118e6f973"
+        "workout_item_id": "6b127ca8-f28e-485b-bbb9-9f3e7f130d24"
       },
       {
-        "id": "abc36fec-9257-45b5-9181-8816df50dc39",
+        "id": "66ee4b07-8d93-4662-a0cf-4344a2a33ed1",
         "rpe": null,
         "load": 205,
         "reps": 5,
@@ -597,14 +597,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "25d9c310-ecf7-44d0-9496-d5d118e6f973"
+        "workout_item_id": "6b127ca8-f28e-485b-bbb9-9f3e7f130d24"
       },
       {
-        "id": "1781d42c-6ed3-4e0e-b78a-48ec1b017c43",
+        "id": "fe6f5f78-ae7e-456b-9251-8d34e29e3226",
         "rpe": null,
         "load": 205,
         "reps": 5,
@@ -616,18 +616,18 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "25d9c310-ecf7-44d0-9496-d5d118e6f973"
+        "workout_item_id": "6b127ca8-f28e-485b-bbb9-9f3e7f130d24"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "74d574e4-5efc-457c-a446-da0b400c16a2",
-    "workout_id": "bf6fda7c-0f39-40de-9cef-75adf6c67203",
+    "id": "da218a4c-3011-4f87-83be-0f2574fef3b9",
+    "workout_id": "dbcb64a7-be48-4b4f-92fd-4e5dd9b7a14a",
     "enrollment_id": null,
     "performed_on": "2026-10-26",
     "notes": "Felt solid.",
@@ -637,7 +637,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "fe529010-9af3-4bfd-be51-4bd6a9a6294c",
+        "id": "f471b0b4-c06f-4314-836d-2b4e368d291e",
         "rpe": null,
         "load": 195,
         "reps": 5,
@@ -649,14 +649,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "7b55ceba-29c6-472c-bbb4-aa6e643adf46"
+        "workout_item_id": "890fa0e4-4b3e-47f4-ba0a-102fd04175b6"
       },
       {
-        "id": "8b4c2529-3ac2-4cf3-be0d-3e4180c9a071",
+        "id": "5679bdc6-dd46-4700-86b4-b1f21fc2d430",
         "rpe": null,
         "load": 195,
         "reps": 5,
@@ -668,14 +668,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "7b55ceba-29c6-472c-bbb4-aa6e643adf46"
+        "workout_item_id": "890fa0e4-4b3e-47f4-ba0a-102fd04175b6"
       },
       {
-        "id": "faf31427-f443-48e6-9541-3cb28ca69951",
+        "id": "0cec3ab3-a90b-426f-866b-165d211ecfe9",
         "rpe": null,
         "load": 195,
         "reps": 5,
@@ -687,14 +687,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "7b55ceba-29c6-472c-bbb4-aa6e643adf46"
+        "workout_item_id": "890fa0e4-4b3e-47f4-ba0a-102fd04175b6"
       },
       {
-        "id": "889f1b5c-fdf4-4e0b-bdff-031e04cf76cd",
+        "id": "c3b6dfa4-3b69-48b4-8204-0573e6f91062",
         "rpe": null,
         "load": 195,
         "reps": 5,
@@ -706,14 +706,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "7b55ceba-29c6-472c-bbb4-aa6e643adf46"
+        "workout_item_id": "890fa0e4-4b3e-47f4-ba0a-102fd04175b6"
       },
       {
-        "id": "c8bc6304-9299-4abb-9003-9d9852853d1a",
+        "id": "b12b3001-83d6-4736-8601-7e7b6f72d1e7",
         "rpe": null,
         "load": 195,
         "reps": 5,
@@ -725,18 +725,18 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "7b55ceba-29c6-472c-bbb4-aa6e643adf46"
+        "workout_item_id": "890fa0e4-4b3e-47f4-ba0a-102fd04175b6"
       }
     ],
     "coach_feedback": []
   },
   {
-    "id": "e4219196-19a3-4fb0-bba9-254193516049",
-    "workout_id": "b901a550-defe-4ed3-b4ba-ed2eb234ec0a",
+    "id": "876e9db4-f571-4197-aac6-8a3ee21f8517",
+    "workout_id": "a74524d6-e62d-441d-979c-d73d241058ec",
     "enrollment_id": null,
     "performed_on": "2026-10-23",
     "notes": "Felt solid.",
@@ -746,7 +746,7 @@
     },
     "workout_log_entries": [
       {
-        "id": "cf49bf9a-0d68-449a-acb9-82777af71aeb",
+        "id": "c77749bc-d194-438a-98a3-9643991e5117",
         "rpe": null,
         "load": 185,
         "reps": 5,
@@ -758,14 +758,14 @@
         "pace_unit": null,
         "set_index": 1,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e52c7dbc-b83a-4f29-a9c8-0cdbee05c9d9"
+        "workout_item_id": "45c29d54-2b74-4598-9e1e-4ccb8ceb09b0"
       },
       {
-        "id": "a6ae2b98-983d-4910-bb83-1acfb486d432",
+        "id": "7de4a7dd-a383-4d39-9d25-2cb93fcec178",
         "rpe": null,
         "load": 185,
         "reps": 5,
@@ -777,14 +777,14 @@
         "pace_unit": null,
         "set_index": 2,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e52c7dbc-b83a-4f29-a9c8-0cdbee05c9d9"
+        "workout_item_id": "45c29d54-2b74-4598-9e1e-4ccb8ceb09b0"
       },
       {
-        "id": "4cda24f1-9681-4208-ad49-920bb8895290",
+        "id": "b0fc0fb4-7038-48a9-b369-389d0f111a0b",
         "rpe": null,
         "load": 185,
         "reps": 5,
@@ -796,14 +796,14 @@
         "pace_unit": null,
         "set_index": 3,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e52c7dbc-b83a-4f29-a9c8-0cdbee05c9d9"
+        "workout_item_id": "45c29d54-2b74-4598-9e1e-4ccb8ceb09b0"
       },
       {
-        "id": "0c1029b1-e5ab-4084-87f2-f09b5b9597f8",
+        "id": "399aad78-0c43-4994-94d7-a5ef82e5e8e2",
         "rpe": null,
         "load": 185,
         "reps": 5,
@@ -815,14 +815,14 @@
         "pace_unit": null,
         "set_index": 4,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e52c7dbc-b83a-4f29-a9c8-0cdbee05c9d9"
+        "workout_item_id": "45c29d54-2b74-4598-9e1e-4ccb8ceb09b0"
       },
       {
-        "id": "e64aeccb-ac6f-46d4-a022-99706d35ab2b",
+        "id": "bd31726e-6740-41a2-b46c-aefe786b2ba6",
         "rpe": null,
         "load": 185,
         "reps": 5,
@@ -834,11 +834,11 @@
         "pace_unit": null,
         "set_index": 5,
         "distance_m": null,
-        "exercise_id": "46f9b65f-04e0-4761-bcdc-5a1137cdd6e1",
+        "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
         "pace_seconds": null,
         "time_seconds": null,
         "benchmark_name": null,
-        "workout_item_id": "e52c7dbc-b83a-4f29-a9c8-0cdbee05c9d9"
+        "workout_item_id": "45c29d54-2b74-4598-9e1e-4ccb8ceb09b0"
       }
     ],
     "coach_feedback": []

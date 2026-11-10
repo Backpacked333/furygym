@@ -1,12 +1,12 @@
 [
   {
-    "id": "08227c74-d507-4353-b056-ea1af11c9891",
-    "program_id": "04e6dbd2-0f23-4d87-bc6c-65e50857a9df",
+    "id": "b7ff9685-f5e8-4a54-b183-f0bf425e1b64",
+    "program_id": "ec86622d-de8e-4bf3-9104-7db7076f751c",
     "start_date": "2026-11-01",
     "expires_at": "2026-12-26",
     "status": "active",
     "programs": {
-      "id": "04e6dbd2-0f23-4d87-bc6c-65e50857a9df",
+      "id": "ec86622d-de8e-4bf3-9104-7db7076f751c",
       "name": "Selection Prep — 6 Week",
       "slug": "selection-prep-6",
       "summary": "Six weeks of ruck, run and strength work to arrive ready.",

@@ -1,15 +1,20 @@
 [
   {
-    "id": "f216c439-02a8-4c63-a909-a9aa4f7f408a",
+    "id": "e15a08f6-b751-49ac-b885-2092828a5717",
     "status": "active",
-    "current_period_end": "2026-11-22T08:49:33.350671+00:00",
+    "started_at": "2026-09-11T09:41:34.411026+00:00",
+    "current_period_end": "2026-11-22T09:41:34.411026+00:00",
     "ends_at": null,
     "cancel_at_period_end": false,
     "frozen_until": null,
     "credits_remaining": null,
+    "stripe_subscription_id": null,
     "membership_plans": {
       "kind": "recurring",
-      "name": "Unlimited Monthly"
+      "name": "Unlimited Monthly",
+      "currency": "usd",
+      "price_cents": 18500,
+      "billing_interval": "month"
     }
   }
 ]

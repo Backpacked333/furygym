@@ -1,6 +1,6 @@
 [
   {
-    "id": "b14267e8-7301-40dc-8ce7-a8c63a4940bd",
+    "id": "10c1726a-0e40-4285-a609-c5dc7e4c38e2",
     "name": "Two Week Intro",
     "description": "Unlimited classes for your first 14 days.",
     "kind": "intro",
@@ -11,7 +11,7 @@
     "duration_days": 14
   },
   {
-    "id": "1e5013c4-e523-400c-8066-46bfd5c09291",
+    "id": "bd80ce57-6b63-42ae-aa74-0ca7100a5dc4",
     "name": "Unlimited Monthly",
     "description": "Unlimited classes and open gym.",
     "kind": "recurring",
@@ -22,7 +22,7 @@
     "duration_days": null
   },
   {
-    "id": "f18eb315-4534-4ddd-b60c-0b0d258c8a33",
+    "id": "47e17420-8948-4029-8c5c-279c7a10c8d0",
     "name": "10 Class Pack",
     "description": "Ten classes, valid for 90 days.",
     "kind": "class_pack",
@@ -33,7 +33,7 @@
     "duration_days": 90
   },
   {
-    "id": "7818ae84-4e9d-40a6-ab6a-1e38064afeed",
+    "id": "91f43e0a-bda3-4bd0-8630-dc9832d2a9c6",
     "name": "Drop-in",
     "description": "A single class.",
     "kind": "drop_in",

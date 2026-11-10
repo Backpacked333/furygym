@@ -67,6 +67,8 @@ public struct Gym: Codable, Hashable, Sendable, Identifiable {
     public var bookingWindowDays: Int
     public var cancelCutoffMinutes: Int
     public var iosProgramPurchaseLink: Bool
+    public var milestoneVisits: Int?
+    public var milestoneReward: String?
 
     public var timeZone: TimeZone { TimeZone(identifier: timezone) ?? TimeZone(identifier: "UTC")! }
 }
@@ -231,10 +233,14 @@ public struct ClassSession: Codable, Hashable, Sendable, Identifiable {
     public var myBookingId: UUID?
     public var myBookingStatus: BookingStatus?
     public var myWaitlistPosition: Int?
+    public var trackId: UUID?
+
+    public var isFull: Bool { bookedCount >= capacity }
+    public var durationMinutes: Int { Int((endsAt.timeIntervalSince(startsAt) / 60).rounded()) }
 
     public init(id: UUID, title: String, startsAt: Date, endsAt: Date, capacity: Int, status: String = "scheduled", trackName: String? = nil,
                 trackColor: String? = nil, coachName: String? = nil, bookedCount: Int = 0, waitlistCount: Int = 0, myBookingId: UUID? = nil,
-                myBookingStatus: BookingStatus? = nil, myWaitlistPosition: Int? = nil) {
+                myBookingStatus: BookingStatus? = nil, myWaitlistPosition: Int? = nil, trackId: UUID? = nil) {
         self.id = id
         self.title = title
         self.startsAt = startsAt
@@ -249,6 +255,7 @@ public struct ClassSession: Codable, Hashable, Sendable, Identifiable {
         self.myBookingId = myBookingId
         self.myBookingStatus = myBookingStatus
         self.myWaitlistPosition = myWaitlistPosition
+        self.trackId = trackId
     }
 }
 
@@ -273,9 +280,21 @@ public struct Membership: Codable, Hashable, Sendable, Identifiable {
     public struct PlanRef: Codable, Hashable, Sendable {
         public var name: String
         public var kind: PlanKind
-        public init(name: String, kind: PlanKind) {
+        public var priceCents: Int?
+        public var currency: String?
+        public var billingInterval: String?
+        public init(name: String, kind: PlanKind, priceCents: Int? = nil, currency: String? = nil, billingInterval: String? = nil) {
             self.name = name
             self.kind = kind
+            self.priceCents = priceCents
+            self.currency = currency
+            self.billingInterval = billingInterval
+        }
+
+        public var priceLabel: String? {
+            guard let priceCents else { return nil }
+            let price = Format.money(cents: priceCents, currency: currency ?? "usd")
+            return billingInterval.map { "\(price)/\($0 == "month" ? "mo" : $0)" } ?? price
         }
     }
 
@@ -287,8 +306,13 @@ public struct Membership: Codable, Hashable, Sendable, Identifiable {
     public var frozenUntil: DayDate?
     public var creditsRemaining: Int?
     public var membershipPlans: PlanRef?
+    public var startedAt: Date?
+    public var stripeSubscriptionId: String?
 
     public var planName: String { membershipPlans?.name ?? "Membership" }
+    public var isRecurring: Bool { membershipPlans?.kind == .recurring }
+    /// Live memberships are the ones the athlete can still act on.
+    public var isLive: Bool { status == .active || status == .pastDue || status == .frozen }
 
     public init(id: UUID, status: MembershipStatus, currentPeriodEnd: Date? = nil, endsAt: Date? = nil, cancelAtPeriodEnd: Bool = false,
                 frozenUntil: DayDate? = nil, creditsRemaining: Int? = nil, membershipPlans: PlanRef? = nil) {
@@ -396,4 +420,15 @@ public struct LogResult: Codable, Hashable, Sendable {
 
     public var logId: UUID
     public var prs: [PR]
+}
+
+/// Class attendance totals for the check-in and profile screens.
+public struct Attendance: Codable, Hashable, Sendable {
+    public var visits: Int
+    public var visitsThisMonth: Int
+
+    public init(visits: Int, visitsThisMonth: Int) {
+        self.visits = visits
+        self.visitsThisMonth = visitsThisMonth
+    }
 }

@@ -46,7 +46,7 @@ const day = (offset) => new Date(Date.now() + offset * 86_400_000).toISOString()
 mkdirSync(out, { recursive: true });
 
 // Keep these select lists identical to FuryCo/Data/Backend.swift.
-const gym = await get("gyms?select=id,name,timezone,booking_window_days,cancel_cutoff_minutes,ios_program_purchase_link&is_default=eq.true");
+const gym = await get("gyms?select=id,name,timezone,booking_window_days,cancel_cutoff_minutes,ios_program_purchase_link,milestone_visits,milestone_reward&is_default=eq.true");
 save("gym", gym);
 save("profile", await get(`profiles?select=id,email,full_name,phone,units,emergency_contact_name,emergency_contact_phone&id=eq.${session.user.id}`));
 
@@ -66,17 +66,18 @@ save(
 save(
   "classes",
   await get(
-    `class_session_overview?select=id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position&starts_at=gte.${day(-7)}T00:00:00Z&order=starts_at&limit=12`,
+    `class_session_overview?select=id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position,track_id&starts_at=gte.${day(-7)}T00:00:00Z&order=starts_at&limit=12`,
   ),
 );
 save("plans", await get("membership_plans?select=id,name,description,kind,price_cents,currency,billing_interval,class_credits,duration_days&order=position"));
-save("memberships", await get("memberships?select=id,status,current_period_end,ends_at,cancel_at_period_end,frozen_until,credits_remaining,membership_plans(name,kind)&order=created_at.desc"));
+save("memberships", await get("memberships?select=id,status,started_at,current_period_end,ends_at,cancel_at_period_end,frozen_until,credits_remaining,stripe_subscription_id,membership_plans(name,kind,price_cents,currency,billing_interval)&order=created_at.desc"));
 const programSelect = "id,name,slug,summary,description,duration_weeks,days_per_week,price_cents,currency,unlock_mode,grace_days";
 save("programs", await get(`programs?select=${programSelect}&status=eq.published&order=position`));
 save("enrollments", await get(`enrollments?select=id,program_id,start_date,expires_at,status,programs(${programSelect})&order=created_at.desc`));
 save("waivers", await get("waivers?select=id,title,body,version&active=eq.true&required=eq.true"));
 save("records", await get("personal_records?select=exercise_id,exercise_name,reps,load,load_unit,load_kg,performed_on&order=exercise_name"));
 save("lift_samples", await get("workout_log_entries?select=exercise_id,load_kg,reps,performed_on&load_kg=not.is.null&exercise_id=not.is.null&order=performed_on"));
+save("attendance", await rpc("my_attendance", {}));
 save("payments", await get("payments?select=id,description,amount_cents,refunded_cents,currency,status,paid_at,created_at&order=created_at.desc"));
 
 // A log submission, then removed again so the database is left as seeded.

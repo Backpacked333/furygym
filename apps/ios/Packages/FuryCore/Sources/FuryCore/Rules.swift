@@ -58,9 +58,12 @@ public struct Entitlements: Equatable, Sendable {
     public let pastDue: Bool
     public let frozen: Bool
 
-    public init(memberships: [Membership], now: Date = Date()) {
+    /// `today` is the gym's date; a freeze whose resume date has arrived counts as active again,
+    /// matching the server.
+    public init(memberships: [Membership], now: Date = Date(), today: DayDate? = nil) {
         let live = memberships.filter { membership in
-            (membership.status == .active || membership.status == .pastDue) && (membership.endsAt.map { $0 > now } ?? true)
+            let thawed = membership.status == .frozen && (membership.frozenUntil.flatMap { until in today.map { until <= $0 } } ?? false)
+            return (membership.status == .active || membership.status == .pastDue || thawed) && (membership.endsAt.map { $0 > now } ?? true)
         }
         hasFacilityAccess = !live.isEmpty
         unlimited = live.contains { $0.creditsRemaining == nil }

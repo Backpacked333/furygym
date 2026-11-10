@@ -1,13 +1,13 @@
 [
   {
-    "id": "33bb39b9-b078-4cf5-8637-ccfdc606ee7d",
+    "id": "fc8c063d-edc8-45ed-9eb0-6810b1b29680",
     "title": "W1 D1 — Ruck",
     "description": "Steady ruck at a pace you could hold for twice the distance.",
     "coach_notes": "Remote athletes: log pack weight honestly, it drives next week's loading.",
     "scheduled_date": null,
     "workout_items": [
       {
-        "id": "05b3ceb7-abec-460a-b45b-713a1a00ecb2",
+        "id": "5d0dc2b0-b4e3-4d1a-ac95-4dd0b41476e4",
         "notes": null,
         "title": "Ruck",
         "metrics": [
@@ -21,7 +21,7 @@
         "section": "Main",
         "position": 1,
         "video_url": null,
-        "exercise_id": "8eff9d2a-d188-456c-93b3-7857af6ba37f",
+        "exercise_id": "5e61cc5a-02d0-445b-9cab-dcecd7ead02d",
         "prescription": "4 miles @ 32 lb",
         "benchmark_name": null
       }

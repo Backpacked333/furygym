@@ -16,6 +16,8 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(gym.bookingWindowDays, 14)
         XCTAssertEqual(gym.cancelCutoffMinutes, 60)
         XCTAssertTrue(gym.iosProgramPurchaseLink)
+        XCTAssertEqual(gym.milestoneVisits, 20)
+        XCTAssertEqual(gym.milestoneReward, "a free Fury Co. tee")
 
         let profile = try XCTUnwrap(fixture("profile", as: [Profile].self).first)
         XCTAssertEqual(profile.fullName, "Alex Athlete")
@@ -77,6 +79,8 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(first.coachName, "Casey Coach")
         XCTAssertTrue(sessions.contains { $0.myBookingStatus == .attended })
         XCTAssertTrue(sessions.allSatisfy { $0.myWaitlistPosition == nil })
+        XCTAssertTrue(sessions.allSatisfy { $0.trackId != nil }, "the class's track links it to the day's workout")
+        XCTAssertEqual(first.durationMinutes, 60)
         // 06:00 in Chicago, whatever the phone's own timezone
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Chicago")!
@@ -95,6 +99,10 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(memberships.first?.planName, "Unlimited Monthly")
         XCTAssertNotNil(memberships.first?.currentPeriodEnd, "timestamps with microseconds must decode")
         XCTAssertTrue(Entitlements(memberships: memberships).unlimited)
+        XCTAssertEqual(memberships.first?.membershipPlans?.priceLabel, "$185.00/mo")
+        XCTAssertNotNil(memberships.first?.startedAt)
+        XCTAssertEqual(memberships.first?.isRecurring, true)
+        XCTAssertEqual(try fixture("attendance", as: Attendance.self), Attendance(visits: 5, visitsThisMonth: 5))
 
         let programs: [Program] = try fixture("programs")
         XCTAssertEqual(programs.first?.unlockMode, .weekly)
