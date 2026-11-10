@@ -68,6 +68,8 @@ targets:
         # Lets a debug build reach a Supabase stack running on the developer's Mac.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Asked only when an athlete switches on "Add to calendar" while reserving a class.
+        NSCalendarsWriteOnlyAccessUsageDescription: Fury Co. adds the classes you reserve to your calendar.
         SupabaseURL: $(SUPABASE_URL)
         SupabaseAnonKey: $(SUPABASE_ANON_KEY)
         WebBaseURL: $(WEB_BASE_URL)

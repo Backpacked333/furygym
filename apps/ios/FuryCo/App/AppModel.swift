@@ -14,6 +14,22 @@ final class AppModel {
         case signedIn
     }
 
+    enum Tab: Hashable {
+        case today, classes, train, progress, checkIn
+    }
+
+    /// Full-screen flows started from the welcome screen or from prompts inside the app.
+    enum Flow: String, Identifiable {
+        case joinGym, programs
+        var id: String { rawValue }
+    }
+
+    /// Which root screen is showing.
+    var tab: Tab = .today
+    var flow: Flow?
+    /// Set on the welcome screen so the right flow opens once the account exists.
+    var intentAfterSignIn: Flow?
+
     let backend: Backend
     let drafts: FileDraftStore
 
@@ -22,6 +38,7 @@ final class AppModel {
     private(set) var profile: Profile?
     private(set) var memberships: [Membership] = []
     private(set) var unsignedWaivers: [Waiver] = []
+    private(set) var attendance = Attendance(visits: 0, visitsThisMonth: 0)
     private(set) var storefrontCountryCode: String?
     /// Set when the account data could not be loaded, so screens can offer a retry.
     private(set) var loadError: String?
@@ -41,7 +58,13 @@ final class AppModel {
 
     var timeZone: TimeZone { gym?.timeZone ?? .current }
     var today: DayDate { DayDate.today(in: timeZone) }
-    var entitlements: Entitlements { Entitlements(memberships: memberships) }
+    var entitlements: Entitlements { Entitlements(memberships: memberships, today: today) }
+    var milestone: Milestone { Milestone(visits: attendance.visits, every: gym?.milestoneVisits ?? 20) }
+    var firstName: String? { profile?.fullName.split(separator: " ").first.map(String.init) }
+    var initials: String {
+        let parts = (profile?.fullName ?? "").split(separator: " ").prefix(2).compactMap { $0.first }
+        return parts.isEmpty ? "?" : String(parts).uppercased()
+    }
     var loadUnit: LoadUnit { profile?.loadUnit ?? .lb }
     var needsWaiver: Bool { !unsignedWaivers.isEmpty }
 
@@ -56,8 +79,13 @@ final class AppModel {
             case .initialSession, .signedIn, .tokenRefreshed, .userUpdated:
                 if let session, !session.isExpired {
                     if phase != .signedIn {
-                        phase = .signedIn
                         await refreshAccount()
+                        phase = .signedIn
+                        // Continue what the athlete picked on the welcome screen.
+                        if let intent = intentAfterSignIn {
+                            intentAfterSignIn = nil
+                            if intent == .programs || !entitlements.hasFacilityAccess { flow = intent }
+                        }
                     }
                 } else if event == .initialSession {
                     phase = .signedOut
@@ -79,6 +107,8 @@ final class AppModel {
             async let profile = backend.profile(userID: userID)
             async let memberships = backend.memberships()
             async let waivers = backend.unsignedWaivers()
+            async let attendance = backend.attendance()
+            self.attendance = (try? await attendance) ?? self.attendance
             self.gym = try await gym
             self.profile = try await profile
             self.memberships = try await memberships
@@ -147,6 +177,9 @@ final class AppModel {
 
     private func clear() {
         profile = nil
+        tab = .today
+        flow = nil
+        attendance = Attendance(visits: 0, visitsThisMonth: 0)
         memberships = []
         unsignedWaivers = []
         loadError = nil

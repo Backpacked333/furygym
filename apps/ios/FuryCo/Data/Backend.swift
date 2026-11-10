@@ -76,7 +76,7 @@ struct Backend: Sendable {
     func gym() async throws -> Gym {
         let rows: [Gym] = try await fetch(
             client.from("gyms")
-                .select("id,name,timezone,booking_window_days,cancel_cutoff_minutes,ios_program_purchase_link")
+                .select("id,name,timezone,booking_window_days,cancel_cutoff_minutes,ios_program_purchase_link,milestone_visits,milestone_reward")
                 .eq("is_default", value: true)
         )
         guard let gym = rows.first else { throw WebError(message: "The gym could not be loaded.") }
@@ -142,6 +142,13 @@ struct Backend: Sendable {
         )
     }
 
+    /// Published workouts on a date, optionally for one track — the preview on a class's page.
+    func workouts(on date: DayDate, trackID: UUID?) async throws -> [Workout] {
+        var query = client.from("workouts").select(Backend.workoutColumns).eq("scheduled_date", value: date.description)
+        if let trackID { query = query.eq("track_id", value: trackID) }
+        return try await fetch(query)
+    }
+
     func log(id: UUID) async throws -> WorkoutLog? {
         let rows: [WorkoutLog] = try await fetch(client.from("workout_logs").select(Backend.logColumns).eq("id", value: id))
         return rows.first
@@ -178,7 +185,7 @@ struct Backend: Sendable {
     func classes(from: Date, to: Date) async throws -> [ClassSession] {
         try await fetch(
             client.from("class_session_overview")
-                .select("id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position")
+                .select("id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position,track_id")
                 .gte("starts_at", value: Timestamp.format(from))
                 .lt("starts_at", value: Timestamp.format(to))
                 .order("starts_at")
@@ -210,6 +217,17 @@ struct Backend: Sendable {
         try await run(client.rpc("cancel_booking", params: BookingParam(booking: id)))
     }
 
+    // MARK: Check-in
+
+    func attendance() async throws -> Attendance {
+        try await fetch(client.rpc("my_attendance"))
+    }
+
+    /// The secret behind this athlete's rotating check-in code. Created on first use.
+    func checkInSecret() async throws -> String {
+        try await fetch(client.rpc("my_checkin_secret"))
+    }
+
     // MARK: Memberships, programs and waivers
 
     func plans() async throws -> [MembershipPlan] {
@@ -224,7 +242,7 @@ struct Backend: Sendable {
         guard let userID = currentUserID else { return [] }
         return try await fetch(
             client.from("memberships")
-                .select("id,status,current_period_end,ends_at,cancel_at_period_end,frozen_until,credits_remaining,membership_plans(name,kind)")
+                .select("id,status,started_at,current_period_end,ends_at,cancel_at_period_end,frozen_until,credits_remaining,stripe_subscription_id,membership_plans(name,kind,price_cents,currency,billing_interval)")
                 .eq("user_id", value: userID)
                 .order("created_at", ascending: false)
         )
@@ -314,6 +332,19 @@ struct Backend: Sendable {
         )
     }
 
+    /// Every loaded set the athlete has logged, for trends and the "last time" hint.
+    func allLiftSamples() async throws -> [LiftSample] {
+        guard let userID = currentUserID else { return [] }
+        return try await fetch(
+            client.from("workout_log_entries")
+                .select("exercise_id,load_kg,reps,performed_on")
+                .eq("user_id", value: userID)
+                .not("load_kg", operator: .is, value: "null")
+                .not("exercise_id", operator: .is, value: "null")
+                .order("performed_on")
+        )
+    }
+
     func payments() async throws -> [Payment] {
         guard let userID = currentUserID else { return [] }
         return try await fetch(
@@ -336,13 +367,13 @@ struct Backend: Sendable {
         let error: String?
     }
 
-    private func post(_ path: String, body: [String: String]) async throws -> WebReply {
+    private func post(_ path: String, body: [String: Any]) async throws -> WebReply {
         let token = try await client.auth.session.accessToken
         var request = URLRequest(url: webBaseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(body)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let reply = (try? JSONDecoder().decode(WebReply.self, from: data)) ?? WebReply(url: nil, message: nil, error: nil)
@@ -360,7 +391,7 @@ struct Backend: Sendable {
     /// Asks the web app for a Stripe Checkout page. The page is opened in an in-app browser and
     /// returns through the `furyco://` link.
     func checkoutURL(for purchase: Purchase) async throws -> URL {
-        var body = ["return_to": "app"]
+        var body: [String: Any] = ["return_to": "app"]
         switch purchase {
         case .plan(let id):
             body["kind"] = "plan"
@@ -385,6 +416,25 @@ struct Backend: Sendable {
     func deleteAccount() async throws {
         _ = try await post("api/account/delete", body: [:])
         try? await client.auth.signOut(scope: .local)
+    }
+
+    enum MembershipChange {
+        case freeze(weeks: Int)
+        case resume
+        case cancel
+    }
+
+    /// Freeze, resume or cancel (at the end of the paid period) the athlete's own membership.
+    func change(membershipID: UUID, _ change: MembershipChange) async throws {
+        var body: [String: Any] = ["membership_id": membershipID.uuidString.lowercased()]
+        switch change {
+        case .freeze(let weeks):
+            body["action"] = "freeze"
+            body["weeks"] = weeks
+        case .resume: body["action"] = "resume"
+        case .cancel: body["action"] = "cancel"
+        }
+        _ = try await post("api/membership", body: body)
     }
 
     func programPageURL(slug: String) -> URL {

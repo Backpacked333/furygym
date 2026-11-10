@@ -32,6 +32,26 @@ enum DateText {
         }
     }
 
+    /// "Nov 10"
+    static func shortDay(_ date: DayDate, in timeZone: TimeZone) -> String {
+        formatter("MMMd", timeZone).string(from: date.noon(in: timeZone))
+    }
+
+    /// "Tue"
+    static func weekdayShort(_ date: DayDate, in timeZone: TimeZone) -> String {
+        formatter("EEE", timeZone).string(from: date.noon(in: timeZone))
+    }
+
+    /// "November 2026"
+    static func monthYear(_ date: DayDate, in timeZone: TimeZone) -> String {
+        formatter("yMMMM", timeZone).string(from: date.noon(in: timeZone))
+    }
+
+    /// "Nov"
+    static func monthShort(_ date: DayDate, in timeZone: TimeZone) -> String {
+        formatter("MMM", timeZone).string(from: date.noon(in: timeZone))
+    }
+
     /// "T" / "10" for the week strip
     static func weekdayInitial(_ date: DayDate, in timeZone: TimeZone) -> String {
         formatter("EEEEE", timeZone).string(from: date.noon(in: timeZone))

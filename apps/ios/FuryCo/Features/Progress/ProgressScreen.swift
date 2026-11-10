@@ -2,90 +2,101 @@ import Charts
 import FuryCore
 import SwiftUI
 
-/// Personal records, benchmark history, adherence and the training log.
+/// Adherence, personal records with their trend, benchmarks and the training log.
 struct ProgressScreen: View {
     private struct Snapshot {
-        var records: [PersonalRecord]
+        var trends: [LiftTrend]
         var benchmarks: [BenchmarkResult]
         var logs: [WorkoutLog]
-        var month: [CalendarEntry]
+        var calendar: [CalendarEntry]
     }
 
     @Environment(AppModel.self) private var model
+    @State private var segment = 0
 
     var body: some View {
-        NavigationStack {
-            AsyncContent(reloadKey: model.revision, load: load) { snapshot in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        summary(snapshot)
-                        recordsSection(snapshot.records)
-                        benchmarksSection(snapshot.benchmarks)
-                        historySection(snapshot.logs)
+        AsyncContent(reloadKey: model.revision, load: load) { snapshot in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ScreenHeader(eyebrow: "Last 12 weeks", title: "Progress").padding(.top, 8)
+                    PillSegmented(options: ["PRs", "Benchmarks", "History"], selection: $segment)
+                    adherenceCard(snapshot)
+                    switch segment {
+                    case 1: benchmarks(snapshot.benchmarks)
+                    case 2: history(snapshot.logs)
+                    default: records(snapshot.trends)
                     }
-                    .padding(16)
                 }
-                .screenBackground()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
-            .navigationTitle("Progress")
-            .navigationDestination(for: PersonalRecord.self) { ExerciseProgressView(record: $0) }
-            .navigationDestination(for: WorkoutLog.self) { LogDetailView(log: $0) }
+            .screenBackground()
+            .withTabBar()
         }
+        .navigationDestination(for: LiftRoute.self) { LiftHistoryView(route: $0) }
+        .navigationDestination(for: WorkoutLog.self) { LogDetailView(log: $0) }
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private func load() async throws -> Snapshot {
         let today = model.today
         async let records = model.backend.personalRecords()
+        async let samples = model.backend.allLiftSamples()
         async let benchmarks = model.backend.benchmarkResults()
-        async let logs = model.backend.recentLogs(limit: 40)
-        async let month = model.backend.calendar(from: today.adding(days: -27), to: today)
-        return Snapshot(records: try await records, benchmarks: try await benchmarks, logs: try await logs, month: try await month)
+        async let logs = model.backend.recentLogs(limit: 120)
+        async let calendar = model.backend.calendar(from: today.adding(days: -83), to: today)
+        return Snapshot(
+            trends: LiftTrend.build(records: try await records, samples: try await samples),
+            benchmarks: try await benchmarks, logs: try await logs, calendar: try await calendar
+        )
     }
 
-    private func summary(_ snapshot: Snapshot) -> some View {
-        let adherence = Adherence.through(model.today, entries: snapshot.month.filter { !$0.locked })
-        let streak = Streak.current(loggedDays: Set(snapshot.logs.map(\.performedOn)), today: model.today)
-        return HStack(spacing: 12) {
-            stat("\(adherence.percent)%", "Last 4 weeks", detail: "\(adherence.completed)/\(adherence.scheduled) sessions")
-            stat("\(streak)", "Day streak", detail: streak == 1 ? "day in a row" : "days in a row")
-            stat("\(snapshot.records.count)", "Records", detail: "lifts tracked")
+    private func adherenceCard(_ snapshot: Snapshot) -> some View {
+        let adherence = Adherence.through(model.today, entries: snapshot.calendar.filter { !$0.locked })
+        let weeks = WeeklyActivity.counts(loggedDays: snapshot.logs.map(\.performedOn), weeks: 12, today: model.today)
+        return FCard(spacing: 16) {
+            HStack(spacing: 16) {
+                Ring(progress: adherence.rate, size: 76, lineWidth: 8) {
+                    Text("\(adherence.percent)%").font(.headline.monospacedDigit())
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Adherence").font(.headline)
+                    Text(adherence.scheduled == 0 ? "Nothing scheduled yet" : "\(adherence.completed) of \(adherence.scheduled) sessions logged")
+                        .font(.footnote).foregroundStyle(FC.label2)
+                }
+            }
+            MiniBars(values: weeks)
+            Text("Sessions logged per week").font(.caption2.weight(.semibold)).foregroundStyle(FC.label2)
         }
-    }
-
-    private func stat(_ value: String, _ label: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.title2.bold().monospacedDigit())
-            Text(label).font(.caption.weight(.semibold))
-            Text(detail).font(.caption2).foregroundStyle(Theme.muted)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.line))
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder private func recordsSection(_ records: [PersonalRecord]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(text: "Personal records")
-            if records.isEmpty {
-                Card { Text("Log a lift with a load to start tracking records.").font(.subheadline).foregroundStyle(Theme.muted) }
-            } else {
-                ForEach(records) { record in
-                    NavigationLink(value: record) {
-                        HStack {
+    @ViewBuilder private func records(_ trends: [LiftTrend]) -> some View {
+        if trends.isEmpty {
+            FCard { Text("Log a lift with a load to start tracking records.").foregroundStyle(FC.label2) }
+        } else {
+            ListGroup {
+                ForEach(Array(trends.enumerated()), id: \.element.id) { index, trend in
+                    NavigationLink(value: LiftRoute(exerciseID: trend.exerciseId, name: trend.name)) {
+                        HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(record.exerciseName).font(.headline)
-                                Text(DateText.day(record.performedOn, in: model.timeZone)).font(.caption).foregroundStyle(Theme.muted)
+                                Text(trend.title).font(.body)
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    Text(Format.number(TrainingMath.displayLoad(kilograms: trend.bestKg, unit: model.loadUnit))).font(FC.metric(22))
+                                    Text(model.loadUnit.rawValue).font(.footnote).foregroundStyle(FC.label2)
+                                    if let delta = trend.deltaKg, delta > 0 {
+                                        Text("+\(Format.number(TrainingMath.displayLoad(kilograms: delta, unit: model.loadUnit)))").font(.footnote.weight(.semibold)).foregroundStyle(FC.green)
+                                    }
+                                }
                             }
-                            Spacer()
-                            Text("\(Format.load(record.load, unit: record.loadUnit))\(record.reps.map { " × \($0)" } ?? "")")
-                                .font(.headline.monospacedDigit())
-                            Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Theme.muted)
+                            Spacer(minLength: 8)
+                            Sparkline(values: trend.series.map(\.estimatedMaxKg)).frame(width: 84, height: 36)
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(FC.label3)
                         }
-                        .padding(12)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.line))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .overlay(alignment: .bottom) { if index < trends.count - 1 { FC.separator.frame(height: 0.5).padding(.leading, 16) } }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -93,39 +104,59 @@ struct ProgressScreen: View {
         }
     }
 
-    @ViewBuilder private func benchmarksSection(_ results: [BenchmarkResult]) -> some View {
+    @ViewBuilder private func benchmarks(_ results: [BenchmarkResult]) -> some View {
         let names = Array(Set(results.map(\.benchmarkName))).sorted()
-        if !names.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionLabel(text: "Benchmarks")
-                ForEach(names, id: \.self) { name in
-                    BenchmarkCard(name: name, results: results.filter { $0.benchmarkName == name })
+        if names.isEmpty {
+            FCard { Text("Benchmark workouts you complete will be tracked here.").foregroundStyle(FC.label2) }
+        } else {
+            ListGroup {
+                ForEach(Array(names.enumerated()), id: \.element) { index, name in
+                    let attempts = results.filter { $0.benchmarkName == name }.sorted { $0.performedOn < $1.performedOn }
+                    let times = attempts.compactMap(\.timeSeconds)
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(name).font(.body)
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(times.min().map(Format.duration) ?? attempts.compactMap(\.reps).max().map { "\($0) reps" } ?? "—").font(FC.metric(22))
+                                if times.count > 1, let first = times.first, let best = times.min(), best < first {
+                                    Text("−\(Format.duration(first - best))").font(.footnote.weight(.semibold)).foregroundStyle(FC.green)
+                                }
+                            }
+                            Text(attempts.count == 1 ? "1 attempt" : "\(attempts.count) attempts").font(.caption).foregroundStyle(FC.label2)
+                        }
+                        Spacer(minLength: 8)
+                        // A faster time is better, so the line is drawn inverted: up means improvement.
+                        Sparkline(values: times.map { -$0 }).frame(width: 84, height: 36)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .overlay(alignment: .bottom) { if index < names.count - 1 { FC.separator.frame(height: 0.5).padding(.leading, 16) } }
                 }
             }
         }
     }
 
-    @ViewBuilder private func historySection(_ logs: [WorkoutLog]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(text: "Training log")
-            if logs.isEmpty {
-                Card { Text("Workouts you log will appear here.").font(.subheadline).foregroundStyle(Theme.muted) }
-            } else {
-                ForEach(logs) { log in
+    @ViewBuilder private func history(_ logs: [WorkoutLog]) -> some View {
+        if logs.isEmpty {
+            FCard { Text("Workouts you log will appear here.").foregroundStyle(FC.label2) }
+        } else {
+            ListGroup {
+                ForEach(Array(logs.prefix(40).enumerated()), id: \.element.id) { index, log in
                     NavigationLink(value: log) {
-                        HStack {
+                        HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(log.title).font(.subheadline.weight(.semibold))
-                                Text(DateText.day(log.performedOn, in: model.timeZone)).font(.caption).foregroundStyle(Theme.muted)
+                                Text(log.title).font(.body)
+                                Text(DateText.day(log.performedOn, in: model.timeZone) + (log.rpe.map { " · RPE \(Format.number($0))" } ?? "")).font(.footnote).foregroundStyle(FC.label2)
                             }
-                            Spacer()
-                            if !log.coachFeedback.isEmpty { Image(systemName: "bubble.left.fill").font(.caption).foregroundStyle(Theme.accent).accessibilityLabel("Coach feedback") }
-                            if log.prCount > 0 { Pill(text: "PR", color: Theme.accent) }
-                            Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Theme.muted)
+                            Spacer(minLength: 8)
+                            if !log.coachFeedback.isEmpty { Image(systemName: "bubble.left.fill").font(.caption).foregroundStyle(FC.red).accessibilityLabel("Coach feedback") }
+                            if log.prCount > 0 { Chip(text: "PR", color: FC.yellow, systemImage: "medal.fill") }
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(FC.label3)
                         }
-                        .padding(12)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.line))
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 60)
+                        .overlay(alignment: .bottom) { if index < min(logs.count, 40) - 1 { FC.separator.frame(height: 0.5).padding(.leading, 16) } }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -134,75 +165,89 @@ struct ProgressScreen: View {
     }
 }
 
-private struct BenchmarkCard: View {
-    @Environment(AppModel.self) private var model
+struct LiftRoute: Hashable {
+    let exerciseID: UUID
     let name: String
-    let results: [BenchmarkResult]
-
-    var body: some View {
-        let timed = results.filter { $0.timeSeconds != nil }
-        Card {
-            HStack {
-                Text(name).font(.headline)
-                Spacer()
-                if let best = timed.map({ $0.timeSeconds! }).min() {
-                    Text(Format.duration(best)).font(.headline.monospacedDigit())
-                } else if let best = results.compactMap(\.reps).max() {
-                    Text("\(best) reps").font(.headline.monospacedDigit())
-                }
-            }
-            if timed.count > 1 {
-                Chart(timed) { result in
-                    LineMark(x: .value("Date", result.performedOn.noon(in: model.timeZone)), y: .value("Seconds", result.timeSeconds ?? 0))
-                    PointMark(x: .value("Date", result.performedOn.noon(in: model.timeZone)), y: .value("Seconds", result.timeSeconds ?? 0))
-                }
-                .foregroundStyle(Theme.accent)
-                .chartYAxis {
-                    AxisMarks { value in
-                        AxisGridLine()
-                        AxisValueLabel { if let seconds = value.as(Double.self) { Text(Format.duration(seconds)) } }
-                    }
-                }
-                .frame(height: 120)
-                .accessibilityLabel("\(name) times over \(timed.count) attempts")
-            }
-            Text(results.count == 1 ? "1 attempt" : "\(results.count) attempts").font(.caption).foregroundStyle(Theme.muted)
-        }
-    }
 }
 
-/// Load over time for one exercise.
-struct ExerciseProgressView: View {
+/// One lift over time: estimated 1RM chart, coach feedback, and every session.
+struct LiftHistoryView: View {
+    private struct Snapshot {
+        var samples: [LiftSample]
+        var logs: [WorkoutLog]
+    }
+
     @Environment(AppModel.self) private var model
-    let record: PersonalRecord
+    @Environment(\.dismiss) private var dismiss
+    let route: LiftRoute
+    @State private var rangeIndex = 1
 
     var body: some View {
-        AsyncContent(reloadKey: 0, load: { try await model.backend.liftSamples(exerciseID: record.exerciseId) }) { samples in
-            let series = ProgressSeries.bestLoadPerDay(samples, unit: model.loadUnit)
+        AsyncContent(reloadKey: 0, load: load) { snapshot in
+            let months = [3, 6, 12][rangeIndex]
+            let cutoff = model.today.adding(days: -months * 30)
+            let series = LiftTrend.series(for: snapshot.samples).filter { $0.date >= cutoff }
+            let unit = model.loadUnit
+            let display = { (kg: Double) in TrainingMath.displayLoad(kilograms: kg, unit: unit) }
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Card {
-                        SectionLabel(text: "Best load each session (\(model.loadUnit.rawValue))")
+                VStack(alignment: .leading, spacing: 14) {
+                    FCard(spacing: 14) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Estimated 1RM").font(.footnote).foregroundStyle(FC.label2)
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    Text(series.last.map { Format.number(display($0.estimatedMaxKg)) } ?? "—").font(FC.metric(34))
+                                    Text(unit.rawValue).foregroundStyle(FC.label2)
+                                }
+                                if let first = series.first, let last = series.last, series.count > 1 {
+                                    let change = display(last.estimatedMaxKg) - display(first.estimatedMaxKg)
+                                    Text("\(change >= 0 ? "+" : "−")\(Format.number(abs(change))) \(unit.rawValue) in \(months) months")
+                                        .font(.footnote.weight(.semibold)).foregroundStyle(change >= 0 ? FC.green : FC.orange)
+                                }
+                            }
+                            Spacer()
+                            PillSegmented(options: ["3M", "6M", "1Y"], selection: $rangeIndex).frame(width: 150)
+                        }
                         if series.count > 1 {
                             Chart(series, id: \.date) { point in
-                                LineMark(x: .value("Date", point.date.noon(in: model.timeZone)), y: .value("Load", point.load))
-                                PointMark(x: .value("Date", point.date.noon(in: model.timeZone)), y: .value("Load", point.load))
+                                AreaMark(x: .value("Date", point.date.noon(in: model.timeZone)), y: .value("Estimated 1RM", display(point.estimatedMaxKg)))
+                                    .foregroundStyle(FC.red.opacity(0.14))
+                                LineMark(x: .value("Date", point.date.noon(in: model.timeZone)), y: .value("Estimated 1RM", display(point.estimatedMaxKg)))
+                                    .foregroundStyle(FC.red)
+                                PointMark(x: .value("Date", point.date.noon(in: model.timeZone)), y: .value("Estimated 1RM", display(point.estimatedMaxKg)))
+                                    .foregroundStyle(FC.red)
                             }
-                            .foregroundStyle(Theme.accent)
                             .chartYScale(domain: .automatic(includesZero: false))
-                            .frame(height: 220)
-                            .accessibilityLabel("\(record.exerciseName) load over \(series.count) sessions")
+                            .frame(height: 180)
+                            .accessibilityLabel("\(route.name) estimated one-rep max over \(series.count) sessions")
                         } else {
-                            Text("Log this lift again to see a trend.").font(.subheadline).foregroundStyle(Theme.muted)
+                            Text("Log this lift again to see a trend.").font(.subheadline).foregroundStyle(FC.label2)
                         }
                     }
-                    Card {
-                        SectionLabel(text: "Sessions")
-                        ForEach(series.reversed(), id: \.date) { point in
+
+                    ForEach(feedback(in: snapshot.logs).prefix(2), id: \.1.id) { log, note in
+                        FCard {
                             HStack {
-                                Text(DateText.day(point.date, in: model.timeZone)).font(.subheadline)
+                                Text("Coach").font(.headline)
+                                Text(DateText.date(note.createdAt, in: model.timeZone)).font(.footnote).foregroundStyle(FC.label2)
                                 Spacer()
-                                Text(Format.load(point.load, unit: model.loadUnit.rawValue)).font(.subheadline.monospacedDigit())
+                                Chip(text: "Feedback", color: FC.red)
+                            }
+                            Text(note.body).font(.body)
+                            Text(log.title).font(.caption).foregroundStyle(FC.label2)
+                        }
+                    }
+
+                    let sessions = sessionRows(snapshot.samples)
+                    let bestLoad = sessions.map(\.loadKg).max()
+                    if !sessions.isEmpty {
+                        ListGroup {
+                            ForEach(Array(sessions.enumerated()), id: \.element.date) { index, session in
+                                ListRow(
+                                    title: "\(DateText.shortDay(session.date, in: model.timeZone)) · \(Format.number(display(session.loadKg)))\(session.reps.map { " × \($0)" } ?? "")",
+                                    value: session.loadKg == bestLoad ? "Best" : nil,
+                                    showChevron: false, isLast: index == sessions.count - 1
+                                )
                             }
                         }
                     }
@@ -211,8 +256,38 @@ struct ExerciseProgressView: View {
             }
             .screenBackground()
         }
-        .navigationTitle(record.exerciseName)
+        .navigationTitle(route.name)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { GlassIconButton(systemName: "chevron.left", label: "Back") { dismiss() } }
+        }
+    }
+
+    private func load() async throws -> Snapshot {
+        async let samples = model.backend.liftSamples(exerciseID: route.exerciseID)
+        async let logs = model.backend.recentLogs(limit: 60)
+        return Snapshot(samples: try await samples, logs: (try? await logs) ?? [])
+    }
+
+    /// Coach notes on sessions that included this lift, newest first.
+    private func feedback(in logs: [WorkoutLog]) -> [(WorkoutLog, CoachFeedback)] {
+        logs.filter { log in log.workoutLogEntries.contains { $0.exerciseId == route.exerciseID } }
+            .flatMap { log in log.coachFeedback.map { (log, $0) } }
+            .sorted { $0.1.createdAt > $1.1.createdAt }
+    }
+
+    private struct SessionRow {
+        let date: DayDate
+        let loadKg: Double
+        let reps: Int?
+    }
+
+    /// The heaviest set of each day, newest first.
+    private func sessionRows(_ samples: [LiftSample]) -> [SessionRow] {
+        var best: [DayDate: LiftSample] = [:]
+        for sample in samples where sample.loadKg > (best[sample.performedOn]?.loadKg ?? 0) { best[sample.performedOn] = sample }
+        return best.values.sorted { $0.performedOn > $1.performedOn }.prefix(20).map { SessionRow(date: $0.performedOn, loadKg: $0.loadKg, reps: $0.reps) }
     }
 }
 
@@ -223,35 +298,34 @@ struct LogDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(DateText.longDay(log.performedOn, in: model.timeZone)).font(.caption).foregroundStyle(Theme.muted)
-                    Text(log.title).font(.title2.bold())
-                    if let rpe = log.rpe { Text("Session RPE \(Format.number(rpe))").font(.subheadline).foregroundStyle(Theme.muted) }
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                ScreenHeader(eyebrow: DateText.longDay(log.performedOn, in: model.timeZone), title: log.title)
+                if let rpe = log.rpe { Chip(text: "Session RPE \(Format.number(rpe))", color: FC.red) }
                 if !log.entries.isEmpty {
-                    Card {
-                        ForEach(log.entries) { entry in
-                            HStack {
-                                Text(entry.benchmarkName ?? "Set \(entry.setIndex)").font(.caption).foregroundStyle(Theme.muted).frame(width: 64, alignment: .leading)
-                                Text(Format.summary(of: entry)).font(.subheadline.monospacedDigit())
-                                Spacer()
-                                if entry.isPr { Pill(text: "PR", color: Theme.accent) }
-                            }
+                    ListGroup {
+                        ForEach(Array(log.entries.enumerated()), id: \.element.id) { index, entry in
+                            ListRow(
+                                title: Format.summary(of: entry).isEmpty ? "Completed" : Format.summary(of: entry),
+                                subtitle: entry.benchmarkName ?? "Set \(entry.setIndex)",
+                                value: entry.isPr ? "PR" : nil, showChevron: false, isLast: index == log.entries.count - 1
+                            )
                         }
                     }
                 }
                 if let notes = log.notes, !notes.isEmpty {
-                    Card {
-                        SectionLabel(text: "Your notes")
-                        Text(notes).font(.subheadline)
+                    FCard {
+                        Eyebrow(text: "Your notes")
+                        Text(notes)
                     }
                 }
                 ForEach(log.coachFeedback) { feedback in
-                    Card {
-                        SectionLabel(text: "Coach feedback")
-                        Text(feedback.body).font(.subheadline)
-                        Text(DateText.date(feedback.createdAt, in: model.timeZone)).font(.caption).foregroundStyle(Theme.muted)
+                    FCard {
+                        HStack {
+                            Eyebrow(text: "Coach feedback", color: FC.red)
+                            Spacer()
+                            Text(DateText.date(feedback.createdAt, in: model.timeZone)).font(.caption).foregroundStyle(FC.label2)
+                        }
+                        Text(feedback.body)
                     }
                 }
             }
