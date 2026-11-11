@@ -225,10 +225,13 @@ struct ClassDetailView: View {
         .navigationBarBackButtonHidden()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) { GlassIconButton(systemName: "chevron.left", label: "Back") { dismiss() } }
+            ToolbarItem(placement: .topBarTrailing) {
+                GlassIconButton(systemName: "arrow.clockwise", label: "Refresh class") { Task { await reload() } }
+                    .disabled(refreshing || working)
+            }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
         .task { _ = await reload() }
-        .refreshable { _ = await reload() }
         .onDisappear { refreshTask.cancel() }
         .sheet(item: $sheet) { kind in
             switch kind {
