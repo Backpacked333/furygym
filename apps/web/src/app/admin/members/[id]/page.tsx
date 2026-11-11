@@ -94,7 +94,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
                       {m.status === "frozen" ? (
                         <ActionButton action={updateMembership} fields={{ id: m.id, op: "unfreeze" }}>Unfreeze</ActionButton>
                       ) : (
-                        <ActionForm action={updateMembership} className="flex items-end gap-2">
+                        <ActionForm action={updateMembership} resetOnSuccess={false} className="flex items-end gap-2">
                           <input type="hidden" name="id" value={m.id} />
                           <input type="hidden" name="op" value="freeze" />
                           <Field label="Freeze until"><Input type="date" name="frozen_until" min={today} className="py-1 text-xs" /></Field>
@@ -106,7 +106,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
                       ) : null}
                       <ActionButton action={updateMembership} fields={{ id: m.id, op: "cancel_now" }} variant="danger" confirm="Cancel this membership immediately? Access ends now.">Cancel now</ActionButton>
                       {m.credits_remaining != null ? (
-                        <ActionForm action={updateMembership} className="flex items-end gap-2">
+                        <ActionForm action={updateMembership} resetOnSuccess={false} className="flex items-end gap-2">
                           <input type="hidden" name="id" value={m.id} />
                           <input type="hidden" name="op" value="set_credits" />
                           <Field label="Credits"><Input type="number" name="credits" min={0} defaultValue={m.credits_remaining} className="w-20 py-1 text-xs" /></Field>
@@ -141,7 +141,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
         <div className="space-y-4">
           {isAdmin && id !== user.id ? (
             <Card title="Role">
-              <ActionForm action={setRole} className="flex items-end gap-3">
+              <ActionForm action={setRole} resetOnSuccess={false} resetKey={member.role} className="flex items-end gap-3">
                 <input type="hidden" name="user_id" value={id} />
                 <Field label="Access level" hint="Coaches write programming and run classes. Admins also manage members, money and settings." className="flex-1">
                   <Select name="role" defaultValue={member.role}>

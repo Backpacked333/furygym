@@ -90,7 +90,7 @@ export function WorkoutEditor({ initial, tracks, exercises, programLabel, defaul
   const loggingFields = items.reduce((n, i) => n + i.metrics.length, 0);
 
   return (
-    <ActionForm action={saveWorkout}>
+    <ActionForm action={saveWorkout} resetOnSuccess={false}>
       <input type="hidden" name="payload" value={payload} />
       <div className="grid gap-4 xl:grid-cols-[270px_minmax(0,1fr)_320px]">
         {/* Exercise library */}

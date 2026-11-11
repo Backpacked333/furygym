@@ -98,7 +98,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Settings">
-          <ActionForm action={saveProgram} className="space-y-3">
+          <ActionForm action={saveProgram} resetOnSuccess={false} resetKey={JSON.stringify(program)} className="space-y-3">
             <input type="hidden" name="id" value={program.id} />
             <Field label="Name"><Input name="name" defaultValue={program.name} required /></Field>
             <Field label="URL name" hint={`Shown at /programs/${program.slug}`}><Input name="slug" defaultValue={program.slug} required /></Field>
@@ -155,7 +155,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                     {isAdmin ? (
                       <details>
                         <summary className="cursor-pointer text-xs underline">Edit</summary>
-                        <ActionForm action={updateEnrollment} className="mt-2 space-y-2">
+                        <ActionForm action={updateEnrollment} resetOnSuccess={false} resetKey={[e.status, e.start_date, e.expires_at].join(":")} className="mt-2 space-y-2">
                           <input type="hidden" name="id" value={e.id} />
                           <Field label="Start date"><Input type="date" name="start_date" defaultValue={e.start_date} /></Field>
                           <Field label="Access until"><Input type="date" name="expires_at" defaultValue={e.expires_at ?? ""} /></Field>

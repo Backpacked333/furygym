@@ -83,10 +83,9 @@ struct WorkoutDetailView: View {
         guard let workout = try await model.backend.workout(id: route.workoutID) else {
             throw Backend.WebError(message: ServerMessage.friendly("workout_locked"))
         }
-        async let logs = model.backend.recentLogs(limit: 60)
+        async let log = model.backend.log(workoutID: route.workoutID, enrollmentID: route.enrollmentID)
         async let samples = model.backend.allLiftSamples()
-        let log = try await logs.first { $0.workoutId == route.workoutID && $0.enrollmentId == route.enrollmentID }
-        return Detail(workout: workout, log: log, last: LastPerformance.byExercise((try? await samples) ?? []))
+        return Detail(workout: workout, log: try await log, last: LastPerformance.byExercise((try? await samples) ?? []))
     }
 
     private func logSummary(_ log: WorkoutLog) -> some View {

@@ -8,10 +8,20 @@ import type { ActionState } from "@/lib/action";
 type FormAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
 /** A form bound to a server action that shows the action's error or success message inline. */
-export function ActionForm({ action, children, className, ...props }: { action: FormAction; children: ReactNode; className?: string } & Omit<ComponentProps<"form">, "action">) {
+export function ActionForm({ action, children, className, resetOnSuccess = true, resetKey, onReset, ...props }: { action: FormAction; children: ReactNode; className?: string; resetOnSuccess?: boolean; resetKey?: string } & Omit<ComponentProps<"form">, "action">) {
   const [state, formAction] = useActionState(action, null);
   return (
-    <form action={formAction} className={className} {...props}>
+    <form
+      key={resetKey}
+      action={formAction}
+      className={className}
+      {...props}
+      onReset={(event) => {
+        // React resets resolved actions even when their result contains a validation error.
+        if (state?.error || !resetOnSuccess) event.preventDefault();
+        onReset?.(event);
+      }}
+    >
       {children}
       {state?.error ? (
         <p role="alert" className="mt-3 rounded-2xl bg-bad/15 px-3 py-2 text-sm text-bad">{state.error}</p>

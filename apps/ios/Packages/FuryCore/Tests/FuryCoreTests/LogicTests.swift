@@ -95,7 +95,7 @@ final class LogFormTests: XCTestCase {
     lazy var workout = Workout(id: uuid(9), title: "Test Day", description: nil, coachNotes: nil, scheduledDate: d("2026-11-10"), workoutItems: [ruck, coolDown, squat, bench2k, row])
 
     func testFormIsBuiltFromWhatTheCoachAskedFor() {
-        let draft = LogForm.newDraft(for: workout, enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
+        let draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
         XCTAssertEqual(Set(draft.items.keys), [squat.id, row.id, ruck.id, bench2k.id], "items with nothing to record get no fields")
         XCTAssertEqual(workout.items.map(\.title), ["Back Squat", "5 x 500m Row", "Ruck", "2k Row", "Cool down"], "ordered by position")
         XCTAssertEqual(bench2k.recordedMetrics, [.time], "benchmark marks the item; it is not itself a field")
@@ -106,7 +106,7 @@ final class LogFormTests: XCTestCase {
     }
 
     func testSubmissionParsesTypedValuesAndDropsEmptySets() throws {
-        var draft = LogForm.newDraft(for: workout, enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
+        var draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
         var s1 = SetDraft(); s1.load = "225"; s1.reps = "5"; s1.rpe = "7"
         var s2 = SetDraft(); s2.load = "235,5"; s2.reps = "5"
         draft.items[squat.id] = [s1, SetDraft(), s2]
@@ -143,7 +143,7 @@ final class LogFormTests: XCTestCase {
     }
 
     func testOnlyFieldsTheCoachConfiguredAreSent() throws {
-        var draft = LogForm.newDraft(for: workout, enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .kg)
+        var draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .kg)
         var s = SetDraft(); s.load = "100"; s.reps = "5"; s.time = "1:00"; s.distance = "400"; s.comments = "ignored: not configured"
         draft.items[squat.id] = [s]
         let entry = try XCTUnwrap(LogForm.submission(from: draft, workout: workout).get().entries.first)
@@ -156,7 +156,7 @@ final class LogFormTests: XCTestCase {
 
     func testValidationNamesTheItemAndTheProblem() {
         func error(_ edit: (inout LogDraft) -> Void) -> String? {
-            var draft = LogForm.newDraft(for: workout, enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
+            var draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
             edit(&draft)
             if case .failure(let failure) = LogForm.submission(from: draft, workout: workout) { return failure.description }
             return nil
@@ -173,7 +173,7 @@ final class LogFormTests: XCTestCase {
 
     func testAWorkoutWithNothingToRecordCanStillBeMarkedDone() throws {
         let mobility = Workout(id: uuid(8), title: "Mobility", description: nil, coachNotes: nil, scheduledDate: nil, workoutItems: [coolDown])
-        let draft = LogForm.newDraft(for: mobility, enrollmentId: uuid(50), performedOn: d("2026-11-10"), loadUnit: .lb)
+        let draft = LogForm.newDraft(for: mobility, ownerID: uuid(1), enrollmentId: uuid(50), performedOn: d("2026-11-10"), loadUnit: .lb)
         XCTAssertTrue(draft.items.isEmpty)
         XCTAssertEqual(try LogForm.submission(from: draft, workout: mobility).get().entries, [])
     }
@@ -185,7 +185,7 @@ final class LogFormTests: XCTestCase {
             LogEntry(id: uuid(22), workoutItemId: bench2k.id, exerciseId: nil, benchmarkName: "2k Row", setIndex: 1, load: nil, loadUnit: "lb", sets: nil, reps: nil, timeSeconds: 472.5, distanceM: nil, paceSeconds: nil, paceUnit: nil, splits: nil, rpe: nil, comments: nil, isPr: true),
         ]
         let log = WorkoutLog(id: uuid(30), workoutId: workout.id, enrollmentId: nil, performedOn: d("2026-11-09"), notes: "Good day", rpe: 8, workouts: nil, workoutLogEntries: entries, coachFeedback: [])
-        let draft = LogForm.draft(from: log, workout: workout, loadUnit: .lb)
+        let draft = LogForm.draft(from: log, ownerID: uuid(1), workout: workout, loadUnit: .lb)
         XCTAssertEqual(draft.loadUnit, .kg, "keeps the unit the log was recorded in")
         XCTAssertEqual(draft.performedOn, d("2026-11-09"))
         XCTAssertEqual(draft.items[squat.id]?.map(\.load), ["100", "102.5"])
@@ -203,18 +203,18 @@ final class LogFormTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = FileDraftStore(directory: directory)
 
-        var draft = LogForm.newDraft(for: workout, enrollmentId: uuid(50), performedOn: d("2026-11-10"), loadUnit: .lb, now: Date(timeIntervalSince1970: 2_000_000_000))
+        var draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: uuid(50), performedOn: d("2026-11-10"), loadUnit: .lb, now: Date(timeIntervalSince1970: 2_000_000_000))
         draft.items[squat.id]![0].load = "22" // half-typed
         draft.items[row.id]![0].time = "9:"
         store.save(draft)
 
         // a new store instance stands in for the app being relaunched
         let reopened = FileDraftStore(directory: directory)
-        XCTAssertEqual(reopened.load(key: LogDraft.key(workoutId: workout.id, enrollmentId: uuid(50))), draft)
-        XCTAssertNil(reopened.load(key: LogDraft.key(workoutId: workout.id, enrollmentId: nil)), "gym and program logs of the same workout are separate")
+        XCTAssertEqual(reopened.load(key: LogDraft.key(ownerID: uuid(1), workoutId: workout.id, enrollmentId: uuid(50))), draft)
+        XCTAssertNil(reopened.load(key: LogDraft.key(ownerID: uuid(1), workoutId: workout.id, enrollmentId: nil)), "gym and program logs of the same workout are separate")
         XCTAssertNil(reopened.load(key: "../../etc/passwd"))
 
-        var older = LogForm.newDraft(for: workout, enrollmentId: nil, performedOn: d("2026-10-01"), loadUnit: .lb, now: Date(timeIntervalSince1970: 1_000_000_000))
+        var older = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-10-01"), loadUnit: .lb, now: Date(timeIntervalSince1970: 1_000_000_000))
         older.notes = "old"
         reopened.save(older)
         XCTAssertEqual(reopened.all().map(\.notes), ["", "old"], "newest first")
@@ -229,6 +229,53 @@ final class LogFormTests: XCTestCase {
         XCTAssertEqual(memory.load(key: draft.key), draft)
         memory.delete(key: draft.key)
         XCTAssertTrue(memory.all().isEmpty)
+    }
+
+    func testDraftsStayWithTheirOwnerAcrossAccountSwitchesAndRelaunches() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = FileDraftStore(directory: directory)
+        for enrollmentID: UUID? in [nil, uuid(50)] {
+            var alex = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: enrollmentID, performedOn: d("2026-11-10"), loadUnit: .lb)
+            alex.notes = "Alex only"
+            alex.items[squat.id]![0].load = "185.5"
+            store.save(alex)
+            var sam = LogForm.newDraft(for: workout, ownerID: uuid(2), enrollmentId: enrollmentID, performedOn: d("2026-11-10"), loadUnit: .kg)
+            XCTAssertNil(store.load(key: sam.key))
+            sam.notes = "Sam only"
+            store.save(sam)
+            let reopened = FileDraftStore(directory: directory)
+            XCTAssertEqual(reopened.load(key: alex.key), alex)
+            XCTAssertEqual(reopened.load(key: sam.key), sam)
+            reopened.delete(key: sam.key)
+            XCTAssertEqual(reopened.load(key: alex.key), alex, "Saving Sam's log cannot delete Alex's draft")
+        }
+    }
+
+    func testOwnerlessLegacyDraftsAreDiscardedRatherThanAdopted() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = FileDraftStore(directory: directory)
+        var draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
+        draft.notes = "Known owner"
+        store.save(draft)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as? [String: Any])
+        legacy.removeValue(forKey: "ownerID")
+        let legacyURL = directory.appendingPathComponent("\(workout.id.uuidString.lowercased())_gym.json")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: legacyURL)
+        let reopened = FileDraftStore(directory: directory)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: legacyURL.path))
+        XCTAssertEqual(reopened.all(), [draft])
+    }
+
+    func testDraftStoredUnderAnotherOwnersKeyIsNotLoaded() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = FileDraftStore(directory: directory)
+        let draft = LogForm.newDraft(for: workout, ownerID: uuid(1), enrollmentId: nil, performedOn: d("2026-11-10"), loadUnit: .lb)
+        let wrongKey = LogDraft.key(ownerID: uuid(2), workoutId: workout.id, enrollmentId: nil)
+        try JSONEncoder().encode(draft).write(to: directory.appendingPathComponent("\(wrongKey).json"))
+        XCTAssertNil(store.load(key: wrongKey))
     }
 }
 

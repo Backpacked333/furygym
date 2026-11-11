@@ -58,7 +58,7 @@ export default async function ExercisesPage() {
                         {(e.default_metrics as Metric[]).map((m) => <Badge key={m}>{METRIC_LABELS[m]}</Badge>)}
                       </span>
                     </summary>
-                    <ActionForm action={saveExercise} className="mt-3 rounded-2xl bg-raised p-3.5">
+                    <ActionForm action={saveExercise} resetOnSuccess={false} className="mt-3 rounded-2xl bg-raised p-3.5">
                       <ExerciseFields exercise={{ ...e, default_metrics: e.default_metrics as Metric[] }} />
                       <div className="mt-3"><SubmitButton small>Save</SubmitButton></div>
                     </ActionForm>
