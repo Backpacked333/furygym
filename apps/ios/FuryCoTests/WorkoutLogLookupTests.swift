@@ -62,6 +62,161 @@ final class WorkoutLogLookupTests: XCTestCase {
     }
 }
 
+@MainActor
+final class BookingAccessTests: XCTestCase {
+    func testOwnedRefreshSurvivesGestureCancellation() async throws {
+        let model = try await model()
+        let refresh = ViewRefreshTask<Bool>()
+        let gesture = Task {
+            await refresh.run {
+                do {
+                    try await model.refreshBookingAccess()
+                    return true
+                } catch { return false }
+            }
+        }
+        gesture.cancel()
+        let applied = await gesture.value
+        XCTAssertTrue(applied)
+        XCTAssertEqual(model.entitlements.classCredits, 7)
+    }
+
+    func testNewRefreshCancelsSupersededWork() async {
+        let refresh = ViewRefreshTask<Bool>()
+        let started = expectation(description: "first refresh started")
+        let first = Task {
+            await refresh.run {
+                started.fulfill()
+                try? await Task.sleep(for: .seconds(30))
+                return !Task.isCancelled
+            }
+        }
+        await fulfillment(of: [started], timeout: 2)
+        let latest = await refresh.run { true }
+        let superseded = await first.value
+        XCTAssertTrue(latest)
+        XCTAssertFalse(superseded)
+    }
+
+    func testDisappearingViewCancelsOwnedRefresh() async {
+        let refresh = ViewRefreshTask<Bool>()
+        let started = expectation(description: "refresh started")
+        let work = Task {
+            await refresh.run {
+                started.fulfill()
+                try? await Task.sleep(for: .seconds(30))
+                return Task.isCancelled
+            }
+        }
+        await fulfillment(of: [started], timeout: 2)
+        refresh.cancel()
+        let cancelled = await work.value
+        XCTAssertTrue(cancelled)
+    }
+
+    private func model(signedIn: Bool = true) async throws -> AppModel {
+        BookingAccessProtocol.credits = 7
+        BookingAccessProtocol.failing = false
+        BookingAccessProtocol.unsignedWaiver = false
+        let session = URLSessionConfiguration.ephemeral
+        session.protocolClasses = [BookingAccessProtocol.self]
+        let url = URL(string: "https://booking-tests.invalid")!
+        let model = AppModel(config: AppConfig(supabaseURL: url, supabaseAnonKey: "fixture", webBaseURL: url), options: .init(
+            auth: .init(storage: TestAuthStorage(), autoRefreshToken: false, emitLocalSessionAsInitialSession: true),
+            global: .init(session: URLSession(configuration: session))
+        ))
+        if signedIn { try await model.backend.signIn(email: "athlete@example.invalid", password: "fixture") }
+        return model
+    }
+
+    func testRefreshReplacesCreditsAfterExternalPromotion() async throws {
+        let model = try await model()
+        try await model.refreshBookingAccess()
+        XCTAssertEqual(model.entitlements.classCredits, 7)
+        BookingAccessProtocol.credits = 6
+        try await model.refreshBookingAccess()
+        XCTAssertEqual(model.entitlements.classCredits, 6)
+        XCTAssertEqual(model.entitlements.classCredits - 1, 5)
+    }
+
+    func testFailureDoesNotLeaveCachedBookingAccessAndRetryRecovers() async throws {
+        let model = try await model()
+        try await model.refreshBookingAccess()
+        XCTAssertTrue(model.entitlements.canBookClasses)
+        BookingAccessProtocol.failing = true
+        do {
+            try await model.refreshBookingAccess()
+            XCTFail("A failed balance lookup must not prepare a reservation")
+        } catch { }
+        XCTAssertFalse(model.entitlements.canBookClasses)
+        BookingAccessProtocol.failing = false
+        BookingAccessProtocol.credits = 6
+        try await model.refreshBookingAccess()
+        XCTAssertEqual(model.entitlements.classCredits, 6)
+    }
+
+    func testPreparationRefreshesRequiredWaiversToo() async throws {
+        let model = try await model()
+        try await model.refreshBookingAccess()
+        XCTAssertFalse(model.needsWaiver)
+        BookingAccessProtocol.unsignedWaiver = true
+        try await model.refreshBookingAccess()
+        XCTAssertTrue(model.needsWaiver)
+    }
+
+    func testSignedOutPreparationFailsClosed() async throws {
+        let model = try await model(signedIn: false)
+        do {
+            try await model.refreshBookingAccess()
+            XCTFail("No reservation preview may use a missing account")
+        } catch { }
+        XCTAssertFalse(model.entitlements.canBookClasses)
+    }
+}
+
+private final class BookingAccessProtocol: URLProtocol {
+    static var credits = 7
+    static var failing = false
+    static var unsignedWaiver = false
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        let url = request.url!
+        XCTAssertEqual(url.host, "booking-tests.invalid")
+        var status = 200
+        let body: String
+        switch url.path {
+        case "/auth/v1/token":
+            body = """
+            {"access_token":"fixture-access-token","token_type":"bearer","expires_in":3600,"expires_at":\(Date().timeIntervalSince1970 + 3600),"refresh_token":"fixture-refresh-token","user":{"id":"\(LogLookupProtocol.userID)","aud":"authenticated","role":"authenticated","app_metadata":{},"user_metadata":{},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            """
+        case "/rest/v1/memberships":
+            if Self.failing {
+                status = 403
+                body = "{\"code\":\"42501\",\"message\":\"permission denied\"}"
+            } else {
+                body = """
+                [{"id":"00000000-0000-4000-a000-000000000020","status":"active","cancel_at_period_end":false,"credits_remaining":\(Self.credits),"membership_plans":{"name":"Class pack","kind":"class_pack"}}]
+                """
+            }
+        case "/rest/v1/waivers" where Self.unsignedWaiver:
+            body = """
+            [{"id":"00000000-0000-4000-a000-000000000030","title":"Updated waiver","body":"Updated terms","version":1}]
+            """
+        case "/rest/v1/waivers", "/rest/v1/waiver_signatures": body = "[]"
+        default:
+            XCTFail("Unexpected booking-access request: \(url.path)")
+            body = "[]"
+        }
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
 private final class TestAuthStorage: AuthLocalStorage, @unchecked Sendable {
     private let lock = NSLock()
     private var values: [String: Data] = [:]

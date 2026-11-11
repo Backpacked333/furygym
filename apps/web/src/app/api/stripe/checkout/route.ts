@@ -28,6 +28,8 @@ export async function POST(request: Request) {
 
   const { data: gym } = await supabase.from("gyms").select("id").eq("is_default", true).single();
   if (!gym) return refuse("gym_unavailable", 503);
+  const { data: member } = await supabase.from("gym_members").select("status").eq("gym_id", gym.id).eq("user_id", user.id).maybeSingle();
+  if (member?.status !== "active") return refuse("not_a_member", 403, "Your gym access is inactive. Contact the gym before making a purchase.");
   const admin = createAdminClient();
 
   let target: CheckoutTarget;

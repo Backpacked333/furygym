@@ -281,7 +281,7 @@ struct LogWorkoutView: View {
             )
         } catch {
             // The draft stays on the device, so nothing typed is lost.
-            self.error = "\(Backend.message(for: error)) Your entries are saved on this phone — try again when you have signal."
+            self.error = "\(Backend.message(for: error)) Your entries are saved on this phone."
         }
     }
 }

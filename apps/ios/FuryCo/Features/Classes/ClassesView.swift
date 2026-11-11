@@ -46,7 +46,9 @@ struct ClassesView: View {
 
     private func load() async throws -> [ClassSession] {
         let start = model.today.noon(in: model.timeZone).addingTimeInterval(-12 * 3600)
-        return try await model.backend.classes(from: start, to: start.addingTimeInterval(Double(window + 1) * 86_400))
+        let sessions = try await model.backend.classes(from: start, to: start.addingTimeInterval(Double(window + 1) * 86_400))
+        try await model.refreshBookingAccess()
+        return sessions
     }
 
     private func dayStrip(_ sessions: [ClassSession]) -> some View {
@@ -152,6 +154,9 @@ struct ClassDetailView: View {
     @State private var preview: Workout?
     @State private var sheet: SheetKind?
     @State private var working = false
+    @State private var refreshing = false
+    @State private var accessReady = false
+    @State private var refreshTask = ViewRefreshTask<Bool>()
     @State private var error: String?
     @State private var confirmCancel = false
 
@@ -222,7 +227,9 @@ struct ClassDetailView: View {
             ToolbarItem(placement: .topBarLeading) { GlassIconButton(systemName: "chevron.left", label: "Back") { dismiss() } }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
-        .task { await refresh() }
+        .task { _ = await reload() }
+        .refreshable { _ = await reload() }
+        .onDisappear { refreshTask.cancel() }
         .sheet(item: $sheet) { kind in
             switch kind {
             case .reserve: ReserveSheet(session: live) { addToCalendar in await book(addToCalendar: addToCalendar) }.fcSheet(height: 430)
@@ -248,38 +255,77 @@ struct ClassDetailView: View {
     }
 
     @ViewBuilder private var actionButton: some View {
-        switch action {
-        case .book, .joinWaitlist:
-            if model.needsWaiver {
-                NavigationLink(value: AccountRoute.waiver) { Text("Sign waiver to book").frame(maxWidth: .infinity) }.buttonStyle(.fc(.gray))
-            } else if !model.entitlements.canBookClasses {
-                Button("Get a membership to book") { model.flow = .joinGym }.buttonStyle(.fc(.gray))
-            } else {
-                Button(action == .book ? "Reserve spot" : "Join waitlist") { sheet = action == .book ? .reserve : .waitlist }
-                    .buttonStyle(.fcFilled)
+        if refreshing {
+            ProgressView("Checking access…").frame(maxWidth: .infinity, minHeight: 50)
+        } else if !accessReady {
+            Button("Retry") { Task { await reload() } }.buttonStyle(.fc(.gray))
+        } else {
+            switch action {
+            case .book, .joinWaitlist:
+                if model.needsWaiver {
+                    NavigationLink(value: AccountRoute.waiver) { Text("Sign waiver to book").frame(maxWidth: .infinity) }.buttonStyle(.fc(.gray))
+                } else if !model.entitlements.canBookClasses {
+                    Button("Get a membership to book") { model.flow = .joinGym }.buttonStyle(.fc(.gray))
+                } else {
+                    Button(action == .book ? "Reserve spot" : "Join waitlist") { Task { await prepareReservation() } }
+                        .buttonStyle(.fcFilled)
+                        .disabled(working)
+                }
+            case .cancel(let late):
+                Button { model.tab = .checkIn } label: { Label("Check in", systemImage: "qrcode") }.buttonStyle(.fcFilled)
+                Button(working ? "Cancelling…" : "Cancel booking") { if late { confirmCancel = true } else { Task { await cancel() } } }
+                    .buttonStyle(.fc(.gray))
                     .disabled(working)
+            case .leaveWaitlist(let position):
+                Button(working ? "Leaving…" : "Leave waitlist\(position.map { " (#\($0))" } ?? "")") { Task { await cancel() } }
+                    .buttonStyle(.fc(.gray))
+                    .disabled(working)
+            case .unavailable(let reason):
+                Text(reason).font(.headline).foregroundStyle(FC.label2).frame(maxWidth: .infinity, minHeight: 50)
             }
-        case .cancel(let late):
-            Button { model.tab = .checkIn } label: { Label("Check in", systemImage: "qrcode") }.buttonStyle(.fcFilled)
-            Button(working ? "Cancelling…" : "Cancel booking") { if late { confirmCancel = true } else { Task { await cancel() } } }
-                .buttonStyle(.fc(.gray))
-                .disabled(working)
-        case .leaveWaitlist(let position):
-            Button(working ? "Leaving…" : "Leave waitlist\(position.map { " (#\($0))" } ?? "")") { Task { await cancel() } }
-                .buttonStyle(.fc(.gray))
-                .disabled(working)
-        case .unavailable(let reason):
-            Text(reason).font(.headline).foregroundStyle(FC.label2).frame(maxWidth: .infinity, minHeight: 50)
         }
     }
 
-    private func refresh() async {
+    @discardableResult
+    private func reload() async -> Bool {
+        await refreshTask.run { await refresh() }
+    }
+
+    private func refresh() async -> Bool {
+        refreshing = true
+        defer { refreshing = false }
         let start = live.startsAt.addingTimeInterval(-60)
-        if let fresh = try? await model.backend.classes(from: start, to: start.addingTimeInterval(120)).first(where: { $0.id == session.id }) {
+        do {
+            guard let fresh = try await model.backend.classes(from: start, to: start.addingTimeInterval(120)).first(where: { $0.id == session.id }) else {
+                throw Backend.WebError(message: "This class is no longer available.")
+            }
+            try await model.refreshBookingAccess()
             current = fresh
+            accessReady = true
+            error = nil
+        } catch is CancellationError {
+            return false
+        } catch {
+            if Task.isCancelled { return false }
+            accessReady = false
+            preview = nil
+            self.error = Backend.message(for: error)
+            return false
         }
         if preview == nil, let trackID = live.trackId {
             preview = try? await model.backend.workouts(on: DayDate(live.startsAt, in: model.timeZone), trackID: trackID).first
+        }
+        return true
+    }
+
+    private func prepareReservation() async {
+        working = true
+        defer { working = false }
+        guard await reload(), !model.needsWaiver, model.entitlements.canBookClasses else { return }
+        switch action {
+        case .book: sheet = .reserve
+        case .joinWaitlist: sheet = .waitlist
+        default: break
         }
     }
 
@@ -296,7 +342,7 @@ struct ClassDetailView: View {
             }
             await model.refreshAccount()
             model.didChange()
-            await refresh()
+            await reload()
         } catch {
             sheet = nil
             self.error = Backend.message(for: error)
@@ -313,7 +359,7 @@ struct ClassDetailView: View {
             Reminders.cancel(for: session.id)
             await model.refreshAccount()
             model.didChange()
-            await refresh()
+            await reload()
         } catch {
             self.error = Backend.message(for: error)
         }

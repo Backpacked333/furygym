@@ -50,7 +50,12 @@ export async function addSession(_: ActionState, form: FormData): Promise<Action
   const time = text(form, "start_time");
   const title = text(form, "title");
   if (!title || !date || !time) return fail("A class needs a title, date and start time.");
-  const start = zonedToUtc(date, time, gym.timezone);
+  let start: Date;
+  try {
+    start = zonedToUtc(date, time, gym.timezone, "reject");
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Choose a valid date and time.");
+  }
   const minutes = integer(form, "duration_minutes") ?? 60;
   const { error } = await supabase.from("class_sessions").insert({
     gym_id: gym.id,
@@ -81,7 +86,7 @@ export async function updateSession(_: ActionState, form: FormData): Promise<Act
   if (error) return fail(error);
   revalidatePath(`/admin/schedule/sessions/${id}`);
   revalidatePath("/admin/schedule");
-  return { ok: patch.status === "cancelled" ? "Class cancelled. Tell booked athletes — notifications are not sent automatically yet." : "Saved." };
+  return { ok: patch.status === "cancelled" ? "Class cancelled. Reservations were released and unused class credits returned. Tell booked athletes — notifications are not sent automatically yet." : "Saved." };
 }
 
 export async function staffBook(_: ActionState, form: FormData): Promise<ActionState> {

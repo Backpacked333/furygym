@@ -100,7 +100,7 @@ struct AuthSheet: View {
                 }
                 Spacer()
                 if mode == .signIn {
-                    Button("Forgot password?") { Task { await reset() } }.disabled(!email.contains("@") || busy)
+                    Link("Forgot password?", destination: model.backend.webBaseURL.appending(path: "reset-password").appending(queryItems: [URLQueryItem(name: "request", value: "1")]))
                 }
             }
             .font(.footnote.weight(.semibold))
@@ -133,11 +133,4 @@ struct AuthSheet: View {
         }
     }
 
-    private func reset() async {
-        busy = true
-        defer { busy = false }
-        try? await model.backend.sendPasswordReset(email: email.trimmingCharacters(in: .whitespaces))
-        // Same answer whether or not the account exists.
-        notice = "If that email has an account, a reset link is on its way."
-    }
 }

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await handleStripeEvent(event, createAdminClient(), stripeGateway(stripe));
-    return NextResponse.json({ received: true, result });
+    return NextResponse.json({ received: result !== "deferred", result }, { status: result === "deferred" ? 503 : 200 });
   } catch (error) {
     console.error(`stripe webhook ${event.type} ${event.id} failed`, error);
     return NextResponse.json({ error: "handler_failed" }, { status: 500 });

@@ -65,10 +65,6 @@ struct Backend: Sendable {
         return true
     }
 
-    func sendPasswordReset(email: String) async throws {
-        try await client.auth.resetPasswordForEmail(email)
-    }
-
     func signOut() async {
         try? await client.auth.signOut()
     }

@@ -188,6 +188,64 @@ describe("one-time purchases", () => {
   });
 });
 
+describe("refund reconciliation", () => {
+  async function purchase(kind: "plan" | "program" = "plan") {
+    const athlete = await newAthlete("refund-order");
+    const intent = uid("pi");
+    const charge = uid("ch");
+    const stripe = new FakeStripe();
+    stripe.payments.set(intent, { chargeId: charge, feeCents: 100, balanceTransactionId: uid("txn") });
+    const session = { id: uid("cs"), mode: "payment", payment_status: "paid", payment_intent: intent, amount_total: 10000, currency: "usd", created: now(),
+      metadata: { kind, user_id: athlete.id, gym_id: gym, ...(kind === "program" ? { program_id: program.id } : { plan_id: plans.class_pack.id }) } };
+    return { athlete, intent, charge, stripe, session };
+  }
+
+  it("defers an early refund without acknowledging it, then applies it on retry", async () => {
+    const f = await purchase();
+    const refund = event("charge.refunded", { id: f.charge, payment_intent: f.intent, amount_refunded: 10000 });
+    expect(await handleStripeEvent(refund, db, f.stripe)).toBe("deferred");
+    expect((await db.from("stripe_events").select("processed_at, error").eq("id", refund.id).single()).data).toMatchObject({ processed_at: null, error: expect.stringContaining("awaits its payment") });
+    await handleStripeEvent(event("checkout.session.completed", f.session), db, f.stripe);
+    expect(await handleStripeEvent(refund, db, f.stripe)).toBe("processed");
+    expect(await handleStripeEvent(refund, db, f.stripe)).toBe("duplicate");
+    expect((await db.from("payments").select("status,refunded_cents").eq("stripe_payment_intent_id", f.intent).single()).data).toEqual({ status: "refunded", refunded_cents: 10000 });
+    expect((await db.from("memberships").select("status").eq("user_id", f.athlete.id).single()).data?.status).toBe("cancelled");
+  });
+
+  it("keeps the full cumulative refund across stale, concurrent and checkout replays", async () => {
+    const f = await purchase();
+    await handleStripeEvent(event("checkout.session.completed", f.session), db, f.stripe);
+    await handleStripeEvent(event("charge.refunded", { id: f.charge, payment_intent: f.intent, amount_refunded: 10000 }), db, f.stripe);
+    await Promise.all([0, 2000, 5000, 10000].map((amount_refunded) => handleStripeEvent(event("charge.refunded", { id: f.charge, payment_intent: f.intent, amount_refunded }), db, f.stripe)));
+    await handleStripeEvent(event("checkout.session.completed", f.session), db, f.stripe);
+    expect((await db.from("payments").select("status,refunded_cents").eq("stripe_payment_intent_id", f.intent).single()).data).toEqual({ status: "refunded", refunded_cents: 10000 });
+  });
+
+  it("can refund a duplicate program payment without revoking the original purchase", async () => {
+    const f = await purchase("program");
+    await handleStripeEvent(event("checkout.session.completed", f.session), db, f.stripe);
+    const secondIntent = uid("pi");
+    const second = { ...f.session, id: uid("cs"), payment_intent: secondIntent };
+    await handleStripeEvent(event("checkout.session.completed", second), db, f.stripe);
+    await handleStripeEvent(event("charge.refunded", { id: uid("ch"), payment_intent: secondIntent, amount_refunded: 10000 }), db, f.stripe);
+    expect((await db.from("enrollments").select("status").eq("stripe_checkout_session_id", f.session.id).single()).data?.status).toBe("active");
+    expect((await db.from("payments").select("status").eq("stripe_payment_intent_id", f.intent).single()).data?.status).toBe("succeeded");
+    expect((await db.from("payments").select("description").eq("stripe_payment_intent_id", secondIntent).single()).data?.description).toContain("duplicate purchase");
+    await db.from("enrollments").update({ status: "paused" }).eq("stripe_checkout_session_id", f.session.id);
+    await handleStripeEvent(event("charge.refunded", { id: f.charge, payment_intent: f.intent, amount_refunded: 10000 }), db, f.stripe);
+    expect((await db.from("enrollments").select("status").eq("stripe_checkout_session_id", f.session.id).single()).data?.status).toBe("refunded");
+  });
+
+  it("does not let an athlete invoke the service-only refund transaction", async () => {
+    const f = await purchase();
+    await handleStripeEvent(event("checkout.session.completed", f.session), db, f.stripe);
+    const payment = (await db.from("payments").select("id").eq("stripe_payment_intent_id", f.intent).single()).data!;
+    const attempt = await f.athlete.client.rpc("apply_payment_refund", { p_payment: payment.id, p_refunded: 10000, p_charge: f.charge });
+    expect(attempt.error).not.toBeNull();
+    expect((await db.from("payments").select("status").eq("id", payment.id).single()).data?.status).toBe("succeeded");
+  });
+});
+
 describe("subscriptions", () => {
   it("handles events in any order through the whole membership lifecycle", async () => {
     const athlete = await newAthlete("sub");

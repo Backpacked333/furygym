@@ -897,7 +897,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "book_class":
+            "apply_payment_refund":
+{ Args: { "p_charge": string,"p_payment": string,"p_refunded": number }; Returns: undefined
+                           },
+"book_class":
 { Args: { "p_session": string,"p_user"?: string }; Returns: {
               "booked_at": string,
 "cancelled_at": string | null,

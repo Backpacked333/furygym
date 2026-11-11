@@ -42,7 +42,11 @@ export async function saveWorkout(_: ActionState, form: FormData): Promise<Actio
   } else if (input.publish === "schedule") {
     if (!input.publish_date || !input.publish_time) return fail("Choose the date and time to publish.");
     status = "published";
-    publishAt = zonedToUtc(input.publish_date, input.publish_time, gym.timezone).toISOString();
+    try {
+      publishAt = zonedToUtc(input.publish_date, input.publish_time, gym.timezone, "reject").toISOString();
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Choose a valid date and time.");
+    }
   }
   if (input.is_template && status === "published") return fail("Templates stay as drafts. Create a workout from the template to publish it.");
 

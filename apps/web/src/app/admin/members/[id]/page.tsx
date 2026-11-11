@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ActionButton, ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card, Empty, Field, Input, LinkButton, PageHeader, Select, Stat, StatusBadge, Table, Td } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
-import { formatDate, formatDateTime, money, titleCase, todayInZone } from "@/lib/format";
+import { addDays, formatDate, formatDateTime, money, titleCase, todayInZone } from "@/lib/format";
 import { addFeedback, grantMembership, refundPayment, setRole, updateMembership } from "../actions";
 
 export const metadata = { title: "Member" };
@@ -97,7 +97,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
                         <ActionForm action={updateMembership} resetOnSuccess={false} className="flex items-end gap-2">
                           <input type="hidden" name="id" value={m.id} />
                           <input type="hidden" name="op" value="freeze" />
-                          <Field label="Freeze until"><Input type="date" name="frozen_until" min={today} className="py-1 text-xs" /></Field>
+                          <Field label="Freeze until"><Input type="date" name="frozen_until" min={addDays(today, 7)} max={addDays(today, 92)} required className="py-1 text-xs" /></Field>
                           <SubmitButton small variant="secondary">Freeze</SubmitButton>
                         </ActionForm>
                       )}

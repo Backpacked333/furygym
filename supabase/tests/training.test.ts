@@ -258,7 +258,8 @@ describe("submit_workout_log", () => {
       { time_seconds: 495, is_pr: false },
       { time_seconds: 472.5, is_pr: true },
     ]);
-    await admin.from("workouts").delete().in("id", [a.workout.id, b.workout.id, c.workout.id]);
+    await athlete.client.from("workout_logs").delete().eq("user_id", athlete.id).throwOnError();
+    await admin.from("workouts").delete().in("id", [a.workout.id, b.workout.id, c.workout.id]).throwOnError();
   });
 
   it("rejects items from another workout and logs against someone else's enrollment", async () => {

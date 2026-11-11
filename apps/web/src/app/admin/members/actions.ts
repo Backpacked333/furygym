@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { fail, integer, text, type ActionState } from "@/lib/action";
 import { requireAdmin, requireStaff, type GymRole } from "@/lib/auth";
 import { PAYMENTS_OFF, getStripe } from "@/lib/stripe/client";
+import { createAdminClient } from "@/lib/supabase/server";
+import { addDays } from "@/lib/format";
 
 export async function setRole(_: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, gym, user, role: myRole } = await requireAdmin();
@@ -55,10 +57,10 @@ export async function updateMembership(_: ActionState, form: FormData): Promise<
   try {
     if (op === "cancel_at_period_end") {
       // Billing stops at the end of the period the member has already paid for.
+      const endsAt = membership.current_period_end ?? membership.ends_at;
+      if (!endsAt) return fail("There is no paid-through date. Set one or use Cancel now to end access immediately.");
       if (subscriptionId) await stripe!.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
-      const patch = subscriptionId
-        ? { cancel_at_period_end: true, ends_at: membership.current_period_end }
-        : { status: "cancelled" as const, ends_at: new Date().toISOString() };
+      const patch = { cancel_at_period_end: true, ends_at: endsAt };
       const { error } = await supabase.from("memberships").update(patch).eq("id", id);
       if (error) return fail(error);
     } else if (op === "cancel_now") {
@@ -66,14 +68,20 @@ export async function updateMembership(_: ActionState, form: FormData): Promise<
       const { error } = await supabase.from("memberships").update({ status: "cancelled", ends_at: new Date().toISOString() }).eq("id", id);
       if (error) return fail(error);
     } else if (op === "freeze") {
-      const until = text(form, "frozen_until") || null;
+      const until = text(form, "frozen_until");
+      const { data: today, error: dateError } = await supabase.rpc("gym_today", { p_gym: membership.gym_id });
+      if (dateError || !today) return fail("The gym date could not be loaded. Please try again.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || until < addDays(today, 7) || until > addDays(today, 92)) {
+        return fail("Choose a freeze end date between 7 and 92 days from today.");
+      }
+      if (!["active", "past_due"].includes(membership.status)) return fail("This membership is not active.");
       if (subscriptionId) {
         await stripe!.subscriptions.update(subscriptionId, {
           pause_collection: { behavior: "void", ...(until ? { resumes_at: Math.floor(new Date(`${until}T12:00:00Z`).getTime() / 1000) } : {}) },
         });
       }
-      const { error } = await supabase.from("memberships").update({ status: "frozen", frozen_until: until }).eq("id", id);
-      if (error) return fail(error);
+      const { error } = await createAdminClient().rpc("freeze_membership", { p_user: membership.user_id, p_membership: id, p_until: until });
+      if (error) return fail(subscriptionId ? "Billing was paused, but bookings could not be updated. Contact the gym before retrying." : error);
     } else if (op === "unfreeze") {
       if (subscriptionId) await stripe!.subscriptions.update(subscriptionId, { pause_collection: null });
       const { error } = await supabase.from("memberships").update({ status: "active", frozen_until: null }).eq("id", id);

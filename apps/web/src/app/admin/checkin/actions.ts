@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth";
 
 export type ScanResult = {
-  result: "checked_in" | "already_checked_in" | "no_booking" | "expired_code" | "invalid_code" | "error";
+  result: "checked_in" | "already_checked_in" | "no_booking" | "expired_code" | "invalid_code" | "inactive_member" | "error";
   athlete?: string;
   class?: string;
   starts_at?: string;
