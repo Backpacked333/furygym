@@ -26,6 +26,7 @@ public struct SetDraft: Codable, Equatable, Sendable {
 /// An in-progress workout log. Saved on device as the athlete types so nothing is lost if the
 /// signal drops on the gym floor.
 public struct LogDraft: Codable, Equatable, Sendable {
+    public let ownerID: UUID
     public var workoutId: UUID
     public var enrollmentId: UUID?
     public var performedOn: DayDate
@@ -36,10 +37,10 @@ public struct LogDraft: Codable, Equatable, Sendable {
     public var items: [UUID: [SetDraft]]
     public var updatedAt: Date
 
-    public var key: String { LogDraft.key(workoutId: workoutId, enrollmentId: enrollmentId) }
+    public var key: String { LogDraft.key(ownerID: ownerID, workoutId: workoutId, enrollmentId: enrollmentId) }
 
-    public static func key(workoutId: UUID, enrollmentId: UUID?) -> String {
-        "\(workoutId.uuidString.lowercased())_\(enrollmentId?.uuidString.lowercased() ?? "gym")"
+    public static func key(ownerID: UUID, workoutId: UUID, enrollmentId: UUID?) -> String {
+        "\(ownerID.uuidString.lowercased())_\(workoutId.uuidString.lowercased())_\(enrollmentId?.uuidString.lowercased() ?? "gym")"
     }
 
     public var hasContent: Bool {
@@ -95,17 +96,17 @@ public enum LogForm {
     }
 
     /// A fresh draft: one empty set per item that has something to record.
-    public static func newDraft(for workout: Workout, enrollmentId: UUID?, performedOn: DayDate, loadUnit: LoadUnit, now: Date = Date()) -> LogDraft {
+    public static func newDraft(for workout: Workout, ownerID: UUID, enrollmentId: UUID?, performedOn: DayDate, loadUnit: LoadUnit, now: Date = Date()) -> LogDraft {
         var items: [UUID: [SetDraft]] = [:]
         for item in workout.items where !item.recordedMetrics.isEmpty {
             items[item.id] = [SetDraft()]
         }
-        return LogDraft(workoutId: workout.id, enrollmentId: enrollmentId, performedOn: performedOn, loadUnit: loadUnit, items: items, updatedAt: now)
+        return LogDraft(ownerID: ownerID, workoutId: workout.id, enrollmentId: enrollmentId, performedOn: performedOn, loadUnit: loadUnit, items: items, updatedAt: now)
     }
 
     /// A draft pre-filled from a log the athlete already submitted, for editing.
-    public static func draft(from log: WorkoutLog, workout: Workout, loadUnit: LoadUnit, now: Date = Date()) -> LogDraft {
-        var draft = newDraft(for: workout, enrollmentId: log.enrollmentId, performedOn: log.performedOn, loadUnit: loadUnit, now: now)
+    public static func draft(from log: WorkoutLog, ownerID: UUID, workout: Workout, loadUnit: LoadUnit, now: Date = Date()) -> LogDraft {
+        var draft = newDraft(for: workout, ownerID: ownerID, enrollmentId: log.enrollmentId, performedOn: log.performedOn, loadUnit: loadUnit, now: now)
         draft.notes = log.notes ?? ""
         draft.rpe = log.rpe.map(Format.number) ?? ""
         let byItem = Dictionary(grouping: log.entries.filter { $0.workoutItemId != nil }, by: { $0.workoutItemId! })

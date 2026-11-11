@@ -92,7 +92,7 @@ public enum ServerMessage {
         "session_cancelled": "This class has been cancelled.",
         "booking_not_open": "Booking has not opened for this class yet.",
         "already_checked_in": "You are already checked in to this class.",
-        "not_a_member": "Your account is not linked to this gym yet.",
+        "not_a_member": "Your gym access is inactive or unavailable. Ask the gym to review your account.",
         "workout_locked": "This workout is not unlocked yet.",
         "program_already_started": "Your program has already started. Ask a coach to move your start date.",
         "start_date_in_past": "Choose today or a later date.",

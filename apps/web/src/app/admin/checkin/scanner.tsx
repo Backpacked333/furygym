@@ -118,11 +118,11 @@ export function Scanner({ timeZone }: { timeZone: string }) {
         ) : (
           <>
             <p className={cx("text-xs font-bold uppercase tracking-[1.2px]", good ? "text-good" : "text-warn")}>
-              {{ checked_in: "Checked in", already_checked_in: "Already checked in", no_booking: "No class booked", expired_code: "Code expired", invalid_code: "Not a Fury Co. code", error: "Could not check in" }[result.result]}
+              {{ checked_in: "Checked in", already_checked_in: "Already checked in", no_booking: "No class booked", expired_code: "Code expired", invalid_code: "Not a Fury Co. code", inactive_member: "Inactive member", error: "Could not check in" }[result.result]}
             </p>
             <p className="mt-2 text-[40px] font-extrabold leading-tight tracking-[-1px]">{result.athlete ?? "—"}</p>
             <p className="mt-1 text-muted">
-              {result.class ? `${result.class} · ${time(result.starts_at)}` : result.result === "no_booking" ? "Add them to a class from its roster." : result.result === "expired_code" ? "Ask the athlete to reopen the check-in screen." : (result.message ?? "")}
+              {result.class ? `${result.class} · ${time(result.starts_at)}` : result.result === "inactive_member" ? "Ask an administrator to review this member's access." : result.result === "no_booking" ? "Add them to a class from its roster." : result.result === "expired_code" ? "Ask the athlete to reopen the check-in screen." : (result.message ?? "")}
             </p>
           </>
         )}

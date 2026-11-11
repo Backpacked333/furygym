@@ -39,10 +39,22 @@ function zoneOffsetMs(at: Date, timeZone: string): number {
 }
 
 /** The instant at which the wall clock in `timeZone` reads `date` `time` (e.g. "2026-11-10", "18:00"). */
-export function zonedToUtc(date: string, time: string, timeZone: string): Date {
+export function zonedToUtc(date: string, time: string, timeZone: string, disambiguation: "compatible" | "reject" = "compatible"): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    throw new Error("Choose a valid date and time.");
+  }
   const [h, m] = time.split(":").map(Number);
   const [y, mo, d] = date.split("-").map(Number);
   const guess = Date.UTC(y, mo - 1, d, h, m ?? 0);
+  if (new Date(guess).toISOString().slice(0, 10) !== date) throw new Error("Choose a valid date and time.");
+  if (disambiguation === "reject") {
+    const offsets = new Set([-36, 0, 36].map((hours) => zoneOffsetMs(new Date(guess + hours * 3_600_000), timeZone)));
+    const candidates = [...offsets].map((offset) => guess - offset)
+      .filter((candidate) => candidate + zoneOffsetMs(new Date(candidate), timeZone) === guess);
+    if (candidates.length === 0) throw new Error("That local time does not exist because the clocks change. Choose another time.");
+    if (candidates.length > 1) throw new Error("That local time occurs twice because the clocks change. Choose an unambiguous time.");
+    return new Date(candidates[0]);
+  }
   // Two passes settle on the right offset either side of a daylight-saving change.
   let result = guess - zoneOffsetMs(new Date(guess), timeZone);
   result = guess - zoneOffsetMs(new Date(result), timeZone);

@@ -515,6 +515,8 @@ struct AsyncContent<Value, Content: View>: View {
 
     @State private var value: Value?
     @State private var error: String?
+    @State private var generation = 0
+    @State private var refreshTask = ViewRefreshTask<Void>()
 
     var body: some View {
         Group {
@@ -522,11 +524,11 @@ struct AsyncContent<Value, Content: View>: View {
                 content(value)
             } else if let error {
                 ContentUnavailableView {
-                    Label("Couldn't load", systemImage: "wifi.exclamationmark")
+                    Label("Couldn't load", systemImage: "exclamationmark.triangle")
                 } description: {
                     Text(error)
                 } actions: {
-                    Button("Try again") { Task { await reload() } }
+                    Button("Try again") { Task { await refreshTask.run { await reload() } } }
                 }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -534,23 +536,43 @@ struct AsyncContent<Value, Content: View>: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FC.bg.ignoresSafeArea())
-        .task(id: reloadKey) { await reload() }
-        .refreshable { await reload() }
+        .task(id: reloadKey) { await refreshTask.run { await reload() } }
+        .refreshable { await refreshTask.run { await reload() } }
+        .onDisappear { refreshTask.cancel() }
     }
 
     private func reload() async {
+        generation += 1
+        let current = generation
         do {
-            value = try await load()
+            let loaded = try await load()
+            guard current == generation, !Task.isCancelled else { return }
+            value = loaded
             error = nil
         } catch is CancellationError {
             // The view went away; nothing to show.
         } catch {
             // A load interrupted by leaving the screen is not a failure worth showing.
-            if Task.isCancelled { return }
-            // Keep showing what we already have if a refresh fails.
-            if value == nil { self.error = Backend.message(for: error) }
+            if Task.isCancelled || current != generation { return }
+            value = nil
+            self.error = Backend.message(for: error)
         }
     }
+}
+
+/// Refresh work follows the view's lifetime, not the system's short-lived gesture task.
+@MainActor
+final class ViewRefreshTask<Value: Sendable> {
+    private var task: Task<Value, Never>?
+
+    func run(_ operation: @escaping @MainActor () async -> Value) async -> Value {
+        task?.cancel()
+        let next = Task { await operation() }
+        task = next
+        return await next.value
+    }
+
+    func cancel() { task?.cancel() }
 }
 
 extension View {

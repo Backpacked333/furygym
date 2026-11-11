@@ -79,7 +79,7 @@ export default async function PlansPage() {
                         {!p.active ? <Badge tone="warn">Off sale</Badge> : null}
                       </span>
                     </summary>
-                    <ActionForm action={savePlan} className="mt-3 rounded-2xl bg-raised p-3.5">
+                    <ActionForm action={savePlan} resetOnSuccess={false} className="mt-3 rounded-2xl bg-raised p-3.5">
                       <PlanFields plan={p} />
                       <div className="mt-3"><SubmitButton small>Save plan</SubmitButton></div>
                     </ActionForm>
@@ -117,7 +117,7 @@ export default async function PlansPage() {
         </Card>
 
         <Card title="Gym settings">
-          <ActionForm action={saveGymSettings} className="space-y-3">
+          <ActionForm action={saveGymSettings} resetOnSuccess={false}>
             <Field label="Gym name"><Input name="name" defaultValue={gym.name} required /></Field>
             <Field label="Timezone" hint="Class times, workout dates and publish times all use this."><Input name="timezone" defaultValue={gym.timezone} required /></Field>
             <div className="grid grid-cols-2 gap-3">

@@ -115,30 +115,36 @@ describe("gym display v2", () => {
     const athlete = await newAthlete("display");
     await admin.from("profiles").update({ full_name: "Dana Marie Display" }).eq("id", athlete.id);
     await makeMember(athlete.id);
+    const { data: track, error: trackError } = await admin.from("tracks").insert({ gym_id: gym, name: "Display test", slug: `display-test-${Date.now()}`, kind: "facility" }).select().single();
+    if (trackError) throw trackError;
 
     const start = new Date(Date.now() + 20 * 60_000);
     const { data: session } = await admin
       .from("class_sessions")
-      .insert({ gym_id: gym, title: "Display Test Class", starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 3600_000).toISOString(), capacity: 8 })
+      .insert({ gym_id: gym, track_id: track!.id, title: "Display Test Class", starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 3600_000).toISOString(), capacity: 8 })
       .select()
       .single();
     const booking = await athlete.client.rpc("book_class", { p_session: session!.id });
     await coach.rpc("check_in", { p_booking: booking.data.id });
 
-    const show = async () => (await anon().rpc("get_display", { p_token: "demo-display-token" })).data;
-    let data = await show();
-    expect(data.timezone).toBe("America/Chicago");
-    expect(data.next_class).toMatchObject({ title: "Display Test Class", capacity: 8, booked: 1, checked_in: 1, checked_in_names: [] });
+    await coach.from("display_state").update({ track_id: track!.id }).eq("gym_id", gym);
+    try {
+      const show = async () => (await anon().rpc("get_display", { p_token: "demo-display-token" })).data;
+      let data = await show();
+      expect(data.timezone).toBe("America/Chicago");
+      expect(data.next_class).toMatchObject({ title: "Display Test Class", capacity: 8, booked: 1, checked_in: 1, checked_in_names: [] });
 
-    await coach.from("display_state").update({ show_checked_in: true }).eq("gym_id", gym);
-    data = await show();
-    expect(data.next_class.checked_in_names).toEqual(["Dana D."]); // first name, last initial only
+      await coach.from("display_state").update({ show_checked_in: true }).eq("gym_id", gym);
+      data = await show();
+      expect(data.next_class.checked_in_names).toEqual(["Dana D."]); // first name, last initial only
 
-    await coach.from("display_state").update({ mode: "off" }).eq("gym_id", gym);
-    expect((await show()).next_class).toBeNull();
-
-    await coach.from("display_state").update({ mode: "auto", show_checked_in: false }).eq("gym_id", gym);
-    await admin.from("class_sessions").delete().eq("id", session!.id);
+      await coach.from("display_state").update({ mode: "off" }).eq("gym_id", gym);
+      expect((await show()).next_class).toBeNull();
+    } finally {
+      await coach.from("display_state").update({ mode: "auto", show_checked_in: false, track_id: null }).eq("gym_id", gym);
+      await admin.from("class_sessions").delete().eq("id", session!.id);
+      await admin.from("tracks").delete().eq("id", track!.id);
+    }
   });
 
   it("uses the design system's track colours and exposes the milestone setting", async () => {

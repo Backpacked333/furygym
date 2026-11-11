@@ -27,10 +27,10 @@ export function db() {
 }
 
 /** A Supabase client signed in as a user — what the iOS app would see. */
-export async function asUser(email: string) {
+export async function asUser(email: string, password = PASSWORD) {
   const env = localEnv();
   const client = createClient(env.url, env.anonKey, { auth });
-  const { error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+  const { error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return client;
 }

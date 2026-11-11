@@ -74,7 +74,7 @@ struct LogWorkoutView: View {
         .onAppear(perform: prepare)
         .onChange(of: draft) { _, newValue in
             // Saved as you type, so a dropped connection or a phone call loses nothing.
-            if let newValue, newValue.hasContent { model.drafts.save(newValue) }
+            if let newValue, newValue.hasContent, newValue.ownerID == model.backend.currentUserID { model.drafts.save(newValue) }
         }
     }
 
@@ -82,17 +82,18 @@ struct LogWorkoutView: View {
 
     private func prepare() {
         guard draft == nil else { return }
-        let key = LogDraft.key(workoutId: workout.id, enrollmentId: route.enrollmentID)
+        guard let ownerID = model.backend.currentUserID else { return }
+        let key = LogDraft.key(ownerID: ownerID, workoutId: workout.id, enrollmentId: route.enrollmentID)
         if let saved = model.drafts.load(key: key), saved.hasContent {
             draft = saved
             restored = true
         } else if let existing {
-            draft = LogForm.draft(from: existing, workout: workout, loadUnit: model.loadUnit)
+            draft = LogForm.draft(from: existing, ownerID: ownerID, workout: workout, loadUnit: model.loadUnit)
         } else {
             // Gym workouts are logged on their own date; program sessions on the day they were done.
             let today = model.today
             let performedOn = route.enrollmentID == nil ? min(route.date, today) : today
-            draft = LogForm.newDraft(for: workout, enrollmentId: route.enrollmentID, performedOn: performedOn, loadUnit: model.loadUnit)
+            draft = LogForm.newDraft(for: workout, ownerID: ownerID, enrollmentId: route.enrollmentID, performedOn: performedOn, loadUnit: model.loadUnit)
         }
     }
 
@@ -254,6 +255,10 @@ struct LogWorkoutView: View {
 
     private func submit() async {
         guard let draft else { return }
+        guard draft.ownerID == model.backend.currentUserID else {
+            error = "Your account changed. Close this workout and reopen it before logging."
+            return
+        }
         error = nil
         let submission: LogSubmission
         switch LogForm.submission(from: draft, workout: workout) {
@@ -276,7 +281,7 @@ struct LogWorkoutView: View {
             )
         } catch {
             // The draft stays on the device, so nothing typed is lost.
-            self.error = "\(Backend.message(for: error)) Your entries are saved on this phone — try again when you have signal."
+            self.error = "\(Backend.message(for: error)) Your entries are saved on this phone."
         }
     }
 }

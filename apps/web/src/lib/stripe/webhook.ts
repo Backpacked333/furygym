@@ -33,7 +33,9 @@ export interface StripeGateway {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Obj = Record<string, any>;
 export type StripeEventLike = { id: string; type: string; data: { object: Obj } };
-export type WebhookResult = "processed" | "duplicate" | "ignored";
+export type WebhookResult = "processed" | "duplicate" | "ignored" | "deferred";
+
+class DeferredStripeEvent extends Error {}
 
 const iso = (unix: number | null | undefined) => (unix ? new Date(unix * 1000).toISOString() : null);
 const idOf = (value: unknown): string | null => (typeof value === "string" ? value : value && typeof value === "object" && "id" in value ? String((value as { id: unknown }).id) : null);
@@ -69,6 +71,7 @@ export async function handleStripeEvent(event: StripeEventLike, db: AppSupabaseC
     return handled ? "processed" : "ignored";
   } catch (error) {
     await db.from("stripe_events").update({ error: error instanceof Error ? error.message : String(error) }).eq("id", event.id);
+    if (error instanceof DeferredStripeEvent) return "deferred";
     throw error; // a non-2xx response makes Stripe retry
   }
 }
@@ -197,25 +200,26 @@ async function checkoutCompleted(session: Obj, db: AppSupabaseClient, gateway: S
     const today = need(await db.rpc("gym_today", { p_gym: meta.gym_id }), "gym_today");
     const start = /^\d{4}-\d{2}-\d{2}$/.test(meta.start_date ?? "") && meta.start_date >= today ? meta.start_date : today;
 
-    let enrollment = must(await db.from("enrollments").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle(), "read enrollment");
+    let enrollment = must(await db.from("enrollments").select("id, stripe_checkout_session_id").eq("stripe_checkout_session_id", session.id).maybeSingle(), "read enrollment");
     if (!enrollment) {
       const created = await db
         .from("enrollments")
         .insert({ gym_id: meta.gym_id, program_id: program.id, user_id: meta.user_id, start_date: start, source: "stripe", stripe_checkout_session_id: session.id })
-        .select("id")
+        .select("id, stripe_checkout_session_id")
         .single();
       if (created.error?.code === "23505") {
         // Already enrolled (a replay, or a second purchase of a program still in progress): keep the
         // existing enrollment and attach this payment to it so an admin can see and refund it.
-        enrollment = need(
-          await db.from("enrollments").select("id").eq("program_id", program.id).eq("user_id", meta.user_id).eq("status", "active").single(),
+        enrollment = must(await db.from("enrollments").select("id, stripe_checkout_session_id").eq("stripe_checkout_session_id", session.id).maybeSingle(), "read replayed enrollment") ?? need(
+          await db.from("enrollments").select("id, stripe_checkout_session_id").eq("program_id", program.id).eq("user_id", meta.user_id).eq("status", "active").single(),
           "read active enrollment",
         );
       } else {
         enrollment = need(created, "create enrollment");
       }
     }
-    await recordPayment(db, { ...base, kind: "program", revenue_stream: "digital", description: program.name, program_id: program.id, enrollment_id: enrollment!.id }, details);
+    const description = enrollment!.stripe_checkout_session_id === session.id ? program.name : `${program.name} (duplicate purchase — review for refund)`;
+    await recordPayment(db, { ...base, kind: "program", revenue_stream: "digital", description, program_id: program.id, enrollment_id: enrollment!.id }, details);
     return true;
   }
   return false;
@@ -334,25 +338,11 @@ async function invoiceFailed(invoice: Obj, db: AppSupabaseClient, gateway: Strip
 
 async function chargeRefunded(charge: Obj, db: AppSupabaseClient): Promise<boolean> {
   const payment = await findPayment(db, { intent: idOf(charge.payment_intent), charge: charge.id });
-  if (!payment) return false;
-  const refunded: number = charge.amount_refunded ?? 0;
-  const full = refunded >= payment.amount_cents;
+  if (!payment) throw new DeferredStripeEvent("Refund awaits its payment row; retry after checkout or invoice reconciliation.");
   must(
-    await db.from("payments").update({ refunded_cents: refunded, status: full ? "refunded" : refunded > 0 ? "partially_refunded" : payment.status, stripe_charge_id: payment.stripe_charge_id ?? charge.id }).eq("id", payment.id),
-    "update refund",
+    await db.rpc("apply_payment_refund", { p_payment: payment.id, p_refunded: charge.amount_refunded ?? 0, p_charge: charge.id }),
+    "apply refund",
   );
-  if (!full) return true;
-
-  // A full refund takes back what the payment bought. Subscriptions are left for an admin to cancel.
-  if (payment.enrollment_id) {
-    must(await db.from("enrollments").update({ status: "refunded" }).eq("id", payment.enrollment_id).eq("status", "active"), "refund enrollment");
-  }
-  if (payment.membership_id && payment.kind !== "membership") {
-    must(
-      await db.from("memberships").update({ status: "cancelled", ends_at: new Date().toISOString() }).eq("id", payment.membership_id).in("status", ["active", "past_due", "frozen"]),
-      "cancel refunded membership",
-    );
-  }
   return true;
 }
 

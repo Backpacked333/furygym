@@ -17,8 +17,13 @@ the order they depend on each other.
    ```
 
    Do **not** run the seed against production — it creates demo accounts with a published password.
-3. In Authentication settings: turn on email confirmation, set the site URL to the web app's URL,
-   and add `furyco://auth-callback` to the redirect URLs. Configure a real email sender (SMTP).
+3. In Authentication settings: turn on email confirmation, set the site URL to the web app's HTTPS URL,
+   and allow `https://YOUR_DOMAIN/auth/callback` as a redirect URL. Configure a real email sender (SMTP).
+   Install `supabase/templates/confirmation.html` and `supabase/templates/recovery.html` as the
+   Confirm signup and Reset password templates. Their `/auth/confirm` links work across browsers
+   and devices, including accounts created in the native app. The default PKCE template also works
+   for web recovery through `/auth/callback`, but requires the browser that requested the email.
+   Native password recovery opens the web flow; use the new password to sign back into the app.
 4. Create the first owner: sign up through the web app, then run in the SQL editor:
 
    ```sql
@@ -35,6 +40,11 @@ the order they depend on each other.
 2. Set the environment variables from `apps/web/.env.example`. `SUPABASE_SERVICE_ROLE_KEY` and the
    Stripe keys are server-only secrets.
 3. Point the production domain at it and set `NEXT_PUBLIC_SITE_URL` to that domain.
+4. Use Node 22, matching CI. Keep preview and production databases and auth URLs separate; never
+   give a public preview the production service-role key or load demo data into production.
+5. Verify signup confirmation and password recovery using the actual delivered emails, including
+   a second browser, invalid/used links, and sign-in with the new password. An anonymous request
+   to `/admin` must redirect to sign-in; an athlete must never see staff/financial pages.
 
 ## 3. Payments (Stripe)
 
@@ -51,6 +61,27 @@ the order they depend on each other.
    subscription payment fail (card `4000 0000 0000 0341`); refund one. Check each shows correctly
    in the console and in Reports. This has not been done yet.
 6. If sales tax applies, set up Stripe Tax and set `STRIPE_AUTOMATIC_TAX=true`.
+
+### Webhook reconciliation
+
+- A refund whose payment has not arrived returns HTTP 503 so Stripe retries it. Its `stripe_events`
+  row keeps `processed_at = null` and a dependency message in `error`. Monitor unresolved rows;
+  do not enable live billing until test-mode checkout/invoice/refund reordering is verified.
+- After resolving a missing checkout/invoice, resend the refund from Stripe's event dashboard.
+  Replays are idempotent and cannot reduce an already-recorded cumulative refund.
+- Duplicate program payments are labeled for staff refund review. Refunding that duplicate does
+  not revoke the original enrollment; only the checkout that granted access can revoke it.
+- For legacy events already acknowledged incorrectly, compare the payment with Stripe first,
+  then have an authorized operator clear only that reviewed event's `processed_at` and resend it.
+  Never bulk-clear processed events or edit refund totals downward.
+
+### Booking lifecycle policy
+
+Cancelling a class releases booked/waitlisted reservations and returns unused debits once.
+Already-attended and no-show history is retained, not silently converted into a refund. Increasing
+capacity serves eligible existing waiters first. Inactive members lose new access and future
+reservations, but retain their own logged history. A non-renewing pass is not a subscription:
+its credits and existing expiry are unchanged by a renewal-cancellation request.
 
 ## 4. iOS app (Apple)
 

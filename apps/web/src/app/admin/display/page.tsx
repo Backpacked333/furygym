@@ -98,7 +98,7 @@ export default async function DisplayControlPage() {
               )}
             </div>
 
-            <ActionForm action={saveDisplay}>
+            <ActionForm action={saveDisplay} resetOnSuccess={false}>
               <fieldset>
                 <legend className="mb-2 text-[13px] font-semibold text-muted">Mode</legend>
                 <div className="grid grid-cols-3 gap-1 rounded-full bg-fill p-0.5 text-center text-[13px] font-semibold">

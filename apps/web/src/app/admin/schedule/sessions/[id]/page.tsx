@@ -159,7 +159,7 @@ export default async function SessionPage({ params }: PageProps<"/admin/schedule
 
           {isAdmin ? (
             <Card title="Class settings">
-              <ActionForm action={updateSession} className="grid gap-3 sm:grid-cols-4">
+              <ActionForm action={updateSession} resetOnSuccess={false} className="grid gap-3 sm:grid-cols-4">
                 <input type="hidden" name="id" value={id} />
                 <Field label="Places"><Input name="capacity" type="number" min={1} defaultValue={session.capacity ?? 16} /></Field>
                 <Field label="Coach">

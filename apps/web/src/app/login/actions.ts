@@ -3,12 +3,13 @@
 import { redirect } from "next/navigation";
 import { fail, text, type ActionState } from "@/lib/action";
 import { createClient } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
 
 export async function signIn(_: ActionState, form: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email: text(form, "email"),
-    password: text(form, "password"),
+    password: typeof form.get("password") === "string" ? form.get("password") as string : "",
   });
   if (error || !data.user) return fail("That email and password do not match an account.");
 
@@ -24,7 +25,10 @@ export async function sendPasswordReset(_: ActionState, form: FormData): Promise
   const email = text(form, "email");
   if (!email) return fail("Enter your email address first.");
   const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${env.siteUrl}/auth/callback`,
+  });
+  if (error) return fail("We couldn't send a reset link right now. Please try again later.");
   // Same answer whether or not the account exists.
   return { ok: "If that email has an account, a reset link is on its way." };
 }

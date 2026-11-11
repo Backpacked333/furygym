@@ -5,6 +5,21 @@ import { buildCheckoutSession, validStartDate } from "@/lib/stripe/checkout";
 import { publishState, workoutSchema } from "@/lib/workouts";
 
 describe("gym-time helpers", () => {
+  it("rejects missing and ambiguous wall-clock times when scheduling", () => {
+    expect(() => zonedToUtc("2027-03-14", "02:30", "America/Chicago", "reject")).toThrow("does not exist");
+    expect(() => zonedToUtc("2027-11-07", "01:30", "America/Chicago", "reject")).toThrow("occurs twice");
+    expect(() => zonedToUtc("2027-10-03", "02:15", "Australia/Lord_Howe", "reject")).toThrow("does not exist");
+    expect(() => zonedToUtc("2011-12-30", "12:00", "Pacific/Apia", "reject")).toThrow("does not exist");
+    expect(zonedToUtc("2027-03-14", "03:30", "America/Chicago", "reject").toISOString()).toBe("2027-03-14T08:30:00.000Z");
+    expect(zonedToUtc("2027-01-15", "09:00", "Asia/Kathmandu", "reject").toISOString()).toBe("2027-01-15T03:15:00.000Z");
+  });
+
+  it("does not normalize invalid calendar input into another day", () => {
+    expect(() => zonedToUtc("2027-02-30", "12:00", "UTC", "reject")).toThrow("valid date");
+    expect(() => zonedToUtc("2027-03-14", "24:30", "UTC", "reject")).toThrow("valid date");
+    expect(() => zonedToUtc("invalid", "12:00", "UTC", "reject")).toThrow("valid date");
+  });
+
   it("converts gym wall-clock time to an instant, either side of daylight saving", () => {
     expect(zonedToUtc("2026-11-10", "18:00", "America/Chicago").toISOString()).toBe("2026-11-11T00:00:00.000Z"); // CST, UTC-6
     expect(zonedToUtc("2026-07-10", "06:00", "America/Chicago").toISOString()).toBe("2026-07-10T11:00:00.000Z"); // CDT, UTC-5

@@ -234,7 +234,7 @@ struct MembershipView: View {
                     }
                     .disabled(working)
 
-                    if !membership.cancelAtPeriodEnd {
+                    if membership.isRecurring && !membership.cancelAtPeriodEnd {
                         ListGroup {
                             Button { confirmCancel = true } label: {
                                 ListRow(title: "Cancel membership", subtitle: "Stays active until the end of the period you have paid for", titleColor: FC.red, isLast: true)
@@ -242,6 +242,10 @@ struct MembershipView: View {
                             .buttonStyle(.plain)
                         }
                         .disabled(working)
+                    }
+                    if !membership.isRecurring {
+                        Text("This pass does not renew. Your credits remain available until its expiry date.")
+                            .font(.footnote).foregroundStyle(FC.label2).padding(.horizontal, 16)
                     }
                     Text("Online programs you’ve purchased stay active if you cancel your gym membership.")
                         .font(.footnote).foregroundStyle(FC.label2).padding(.horizontal, 16)

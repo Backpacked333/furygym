@@ -18,6 +18,14 @@ public final class FileDraftStore: DraftStore, @unchecked Sendable {
     public init(directory: URL) {
         self.directory = directory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: file),
+                  let fields = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  fields["ownerID"] == nil else { continue }
+            // Legacy drafts have no provable owner; never assign them to the next signed-in user.
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     private func url(for key: String) -> URL {
@@ -30,7 +38,8 @@ public final class FileDraftStore: DraftStore, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         guard let data = try? Data(contentsOf: url(for: key)) else { return nil }
-        return try? decoder.decode(LogDraft.self, from: data)
+        guard let draft = try? decoder.decode(LogDraft.self, from: data), draft.key == key else { return nil }
+        return draft
     }
 
     public func save(_ draft: LogDraft) {

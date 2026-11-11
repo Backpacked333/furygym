@@ -11,11 +11,11 @@ struct Backend: Sendable {
     let client: SupabaseClient
     let webBaseURL: URL
 
-    init(config: AppConfig) {
+    init(config: AppConfig, options: SupabaseClientOptions = .init(auth: .init(emitLocalSessionAsInitialSession: true))) {
         client = SupabaseClient(
             supabaseURL: config.supabaseURL,
             supabaseKey: config.supabaseAnonKey,
-            options: SupabaseClientOptions(auth: .init(emitLocalSessionAsInitialSession: true))
+            options: options
         )
         webBaseURL = config.webBaseURL
     }
@@ -63,10 +63,6 @@ struct Backend: Sendable {
         let response = try await client.auth.signUp(email: email, password: password, data: ["full_name": .string(fullName)])
         if case .session = response { return false }
         return true
-    }
-
-    func sendPasswordReset(email: String) async throws {
-        try await client.auth.resetPasswordForEmail(email)
     }
 
     func signOut() async {
@@ -140,6 +136,20 @@ struct Backend: Sendable {
                 .order("performed_on", ascending: false)
                 .limit(limit)
         )
+    }
+
+    func log(workoutID: UUID, enrollmentID: UUID?) async throws -> WorkoutLog? {
+        guard let userID = currentUserID else { throw WebError(message: "Sign in to load your workout log.") }
+        var query = client.from("workout_logs").select(Backend.logColumns)
+            .eq("user_id", value: userID)
+            .eq("workout_id", value: workoutID)
+        if let enrollmentID {
+            query = query.eq("enrollment_id", value: enrollmentID)
+        } else {
+            query = query.is("enrollment_id", value: nil)
+        }
+        let rows: [WorkoutLog] = try await fetch(query)
+        return rows.first
     }
 
     /// Published workouts on a date, optionally for one track — the preview on a class's page.

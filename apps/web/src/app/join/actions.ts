@@ -7,9 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function signUp(_: ActionState, form: FormData): Promise<ActionState> {
   const fullName = text(form, "full_name");
   const email = text(form, "email");
-  const password = text(form, "password");
+  const password = form.get("password");
   if (fullName.length < 2) return fail("Enter your full name.");
-  if (password.length < 8) return fail("Choose a password of at least 8 characters.");
+  if (typeof password !== "string" || password.length < 8) return fail("Choose a password of at least 8 characters.");
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
