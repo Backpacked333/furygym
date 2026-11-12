@@ -1,0 +1,18 @@
+// Copy to Config.xcconfig and fill in. Config.xcconfig is git-ignored: keys never go in the repo.
+// xcconfig treats "//" as a comment, so URLs are written with $() in the middle:  https:/$()/host
+
+// Your Apple Developer team ID (10 characters) and the bundle ID registered for the app.
+DEVELOPMENT_TEAM = ABCDE12345
+APP_BUNDLE_ID = com.furyco.athletics
+
+// Supabase project → Settings → API. The anon/publishable key is safe to ship in the app;
+// never put the service-role key here.
+SUPABASE_URL = https:/$()/your-project-ref.supabase.co
+SUPABASE_ANON_KEY = your-anon-or-publishable-key
+
+// Where apps/web is deployed (no trailing slash). Hosts checkout and account deletion.
+WEB_BASE_URL = https:/$()/app.your-domain.com
+
+// Local development against `pnpm db:start` and `pnpm web:dev` on the same Mac (simulator only):
+// SUPABASE_URL = http:/$()/127.0.0.1:54321
+// WEB_BASE_URL = http:/$()/127.0.0.1:3000

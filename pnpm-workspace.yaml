@@ -1,0 +1,8 @@
+packages:
+  - apps/web
+  - supabase/tests
+onlyBuiltDependencies:
+  - supabase
+  - esbuild
+  - sharp
+  - unrs-resolver

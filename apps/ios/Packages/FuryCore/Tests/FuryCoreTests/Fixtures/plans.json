@@ -1,0 +1,46 @@
+[
+  {
+    "id": "10c1726a-0e40-4285-a609-c5dc7e4c38e2",
+    "name": "Two Week Intro",
+    "description": "Unlimited classes for your first 14 days.",
+    "kind": "intro",
+    "price_cents": 4900,
+    "currency": "usd",
+    "billing_interval": null,
+    "class_credits": null,
+    "duration_days": 14
+  },
+  {
+    "id": "bd80ce57-6b63-42ae-aa74-0ca7100a5dc4",
+    "name": "Unlimited Monthly",
+    "description": "Unlimited classes and open gym.",
+    "kind": "recurring",
+    "price_cents": 18500,
+    "currency": "usd",
+    "billing_interval": "month",
+    "class_credits": null,
+    "duration_days": null
+  },
+  {
+    "id": "47e17420-8948-4029-8c5c-279c7a10c8d0",
+    "name": "10 Class Pack",
+    "description": "Ten classes, valid for 90 days.",
+    "kind": "class_pack",
+    "price_cents": 20000,
+    "currency": "usd",
+    "billing_interval": null,
+    "class_credits": 10,
+    "duration_days": 90
+  },
+  {
+    "id": "91f43e0a-bda3-4bd0-8630-dc9832d2a9c6",
+    "name": "Drop-in",
+    "description": "A single class.",
+    "kind": "drop_in",
+    "price_cents": 2500,
+    "currency": "usd",
+    "billing_interval": null,
+    "class_credits": 1,
+    "duration_days": 30
+  }
+]

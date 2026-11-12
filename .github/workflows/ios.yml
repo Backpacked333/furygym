@@ -1,0 +1,87 @@
+name: iOS
+
+# macOS runners bill at ten times the Linux rate on private repositories, so this only runs
+# when the iOS app itself changes.
+on:
+  # Pushes to a branch with an open pull request are covered by the pull_request run.
+  push:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Shared logic (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test FuryCore
+        run: swift test --package-path apps/ios/Packages/FuryCore
+
+  app:
+    name: Build and test the app (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Generate the Xcode project
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+
+      - name: Pick a simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name | startswith("iPhone"))] | last | .udid')
+          test -n "$DEVICE" && test "$DEVICE" != "null"
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
+          xcrun simctl list devices available | grep "$DEVICE"
+
+      # Only compiler errors and the result are printed; the full log is attached if the build fails.
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project FuryCo.xcodeproj -scheme FuryCo \
+            -destination "id=$DEVICE" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log | grep -E "error:|error |\*\* |warning: unused|Resolved source packages" || true
+          grep -q "TEST BUILD SUCCEEDED" build.log
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project FuryCo.xcodeproj -scheme FuryCo \
+            -destination "id=$DEVICE" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -E "Test Case|Test Suite|error:|\*\* |Executed" || true
+          grep -q "TEST EXECUTE SUCCEEDED" test.log
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-logs
+          path: |
+            apps/ios/build.log
+            apps/ios/test.log
+          retention-days: 7

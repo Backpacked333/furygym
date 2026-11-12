@@ -1,0 +1,29 @@
+[
+  {
+    "exercise_id": "e3c649fd-bb50-4871-9dc7-e3d532ddb161",
+    "exercise_name": "Back Squat",
+    "reps": 5,
+    "load": 235,
+    "load_unit": "lb",
+    "load_kg": 106.59,
+    "performed_on": "2026-11-07"
+  },
+  {
+    "exercise_id": "40362fd3-c38f-4a95-a5a1-8a76e937a73d",
+    "exercise_name": "Deadlift",
+    "reps": 5,
+    "load": 275,
+    "load_unit": "lb",
+    "load_kg": 124.74,
+    "performed_on": "2026-11-02"
+  },
+  {
+    "exercise_id": "5e61cc5a-02d0-445b-9cab-dcecd7ead02d",
+    "exercise_name": "Ruck",
+    "reps": null,
+    "load": 32,
+    "load_unit": "lb",
+    "load_kg": 14.51,
+    "performed_on": "2026-11-01"
+  }
+]

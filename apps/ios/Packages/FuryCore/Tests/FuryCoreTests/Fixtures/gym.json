@@ -1,0 +1,12 @@
+[
+  {
+    "id": "6df6d35c-cba9-4fd5-bf5d-c4b2a9b4d844",
+    "name": "Fury Co. Athletics",
+    "timezone": "America/Chicago",
+    "booking_window_days": 14,
+    "cancel_cutoff_minutes": 60,
+    "ios_program_purchase_link": true,
+    "milestone_visits": 20,
+    "milestone_reward": "a free Fury Co. tee"
+  }
+]

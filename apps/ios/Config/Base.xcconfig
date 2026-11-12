@@ -1,0 +1,15 @@
+// Build settings shared by every configuration. Committed with placeholders only.
+//
+// To run the app, copy Config.example.xcconfig to Config.xcconfig (which is git-ignored) and fill
+// it in. Values there override the placeholders below.
+//
+// Note for URLs: xcconfig treats "//" as the start of a comment, so write  https:/$()/example.com
+
+APP_BUNDLE_ID = com.furyco.athletics
+DEVELOPMENT_TEAM =
+
+SUPABASE_URL = YOUR_SUPABASE_URL
+SUPABASE_ANON_KEY = YOUR_SUPABASE_ANON_KEY
+WEB_BASE_URL = YOUR_WEB_BASE_URL
+
+#include? "Config.xcconfig"

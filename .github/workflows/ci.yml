@@ -1,0 +1,79 @@
+name: Backend and web
+
+on:
+  # Pushes to a branch with an open pull request are covered by the pull_request run.
+  push:
+    branches: [main]
+    paths-ignore:
+      - "apps/ios/**"
+      - "docs/**"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "apps/ios/**"
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Postgres, auth and the REST API in Docker, with every migration and the seed applied.
+      - name: Start Supabase
+        run: pnpm db:start
+
+      - name: Database tests (access rules, booking, calendar, logging, reports)
+        run: pnpm db:test
+
+      - name: Point the web app at the local stack
+        run: |
+          pnpm exec supabase status -o json | sed -n '/^{/,$p' > /tmp/status.json
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(jq -r .API_URL /tmp/status.json)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(jq -r .ANON_KEY /tmp/status.json)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(jq -r .SERVICE_ROLE_KEY /tmp/status.json)"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+          } > apps/web/.env.local
+
+      - name: Lint and typecheck
+        working-directory: apps/web
+        run: pnpm lint && pnpm typecheck
+
+      - name: Unit and Stripe webhook tests
+        run: pnpm web:test
+
+      # The earlier suites create test accounts; start the browser tests from the seeded state.
+      - run: pnpm db:reset
+
+      - name: Install browser
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser end-to-end tests
+        run: pnpm web:e2e
+        env:
+          CI: "true"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: apps/web/test-results
+          retention-days: 7
