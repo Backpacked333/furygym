@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { gymId, makeMember, newAthlete, newSession, service, signIn } from "./helpers";
+import { addDays, gymId, makeMember, newAthlete, newSession, service, signIn } from "./helpers";
 
 let gym: string;
 let owner: Awaited<ReturnType<typeof signIn>>;
@@ -9,17 +9,79 @@ async function pair() {
   const a = await newAthlete("reserved");
   const b = await newAthlete("waiting");
   const membership = await makeMember(a.id, { credits: 3 });
-  await makeMember(b.id);
+  const waitingMembership = await makeMember(b.id);
   const session = await newSession(1);
   const first = await a.client.rpc("book_class", { p_session: session.id });
   const waiting = await b.client.rpc("book_class", { p_session: session.id });
   expect(first.error).toBeNull(); expect(waiting.error).toBeNull();
   expect(waiting.data.status).toBe("waitlisted");
-  return { a, b, membership, session, first: first.data, waiting: waiting.data };
+  return { a, b, membership, waitingMembership, session, first: first.data, waiting: waiting.data };
 }
 async function booking(id: string) { return (await db.from("bookings").select("*").eq("id", id).single()).data!; }
 
 describe("booking lifecycle", () => {
+  it("freezes only the funding plan's reservations, preserving an already-spent class-pack credit", async () => {
+    const athlete = await newAthlete("two-plans");
+    const pack = await makeMember(athlete.id, { credits: 1 });
+    const packSession = await newSession(1);
+    const packBooking = await athlete.client.rpc("book_class", { p_session: packSession.id });
+    expect(packBooking.error).toBeNull();
+    expect(packBooking.data.membership_id).toBe(pack.id);
+    const recurring = await makeMember(athlete.id);
+    const recurringSession = await newSession(1);
+    const recurringBooking = await athlete.client.rpc("book_class", { p_session: recurringSession.id });
+    expect(recurringBooking.error).toBeNull();
+    expect(recurringBooking.data.membership_id).toBe(recurring.id);
+    const waiter = await newAthlete("freeze-promotion"); await makeMember(waiter.id);
+    const waiting = await waiter.client.rpc("book_class", { p_session: recurringSession.id });
+    expect(waiting.data.status).toBe("waitlisted");
+    const today = (await db.rpc("gym_today", { p_gym: gym })).data;
+    const frozen = await db.rpc("freeze_membership", { p_user: athlete.id, p_membership: recurring.id, p_until: addDays(today, 10) });
+    expect(frozen.error).toBeNull();
+    expect(frozen.data.released_bookings).toBe(1);
+    expect(await booking(packBooking.data.id)).toMatchObject({ status: "booked", credit_used: true, membership_id: pack.id });
+    expect((await db.from("memberships").select("credits_remaining").eq("id", pack.id).single()).data?.credits_remaining).toBe(0);
+    expect((await booking(recurringBooking.data.id)).status).toBe("cancelled");
+    expect((await booking(waiting.data.id)).status).toBe("booked");
+  });
+
+  it.each([null, 0, 1])("preserves a frozen member's waitlist only with another usable entitlement (%s credits)", async (credits) => {
+    const f = await pair();
+    if (credits !== null) await makeMember(f.b.id, { credits });
+    const today = (await db.rpc("gym_today", { p_gym: gym })).data;
+    const frozen = await db.rpc("freeze_membership", { p_user: f.b.id, p_membership: f.waitingMembership.id, p_until: addDays(today, 10) });
+    expect(frozen.error).toBeNull();
+    expect(frozen.data.released_bookings).toBe(credits === 1 ? 0 : 1);
+    expect((await booking(f.waiting.id)).status).toBe(credits === 1 ? "waitlisted" : "cancelled");
+    expect((await booking(f.first.id)).status).toBe("booked");
+  });
+
+  it.each(["cancel", "end"])("removes uncovered waitlists on membership %s, retaining and promoting those funded by another plan", async (action) => {
+    for (const hasAlternative of [false, true]) {
+      const f = await pair();
+      if (hasAlternative) await makeMember(f.b.id, { credits: 1 });
+      const patch = action === "cancel" ? { status: "cancelled" } : { ends_at: new Date().toISOString() };
+      expect((await db.from("memberships").update(patch).eq("id", f.waitingMembership.id)).error).toBeNull();
+      expect((await booking(f.waiting.id)).status).toBe(hasAlternative ? "waitlisted" : "cancelled");
+      const next = await newAthlete("next-covered-waiter"); await makeMember(next.id);
+      const nextBooking = await next.client.rpc("book_class", { p_session: f.session.id });
+      expect(nextBooking.data.status).toBe("waitlisted");
+      expect((await f.a.client.rpc("cancel_booking", { p_booking: f.first.id })).error).toBeNull();
+      expect((await booking(hasAlternative ? f.waiting.id : nextBooking.data.id)).status).toBe("booked");
+    }
+  });
+
+  it("retains waitlists before a shortened paid-through date and cancels those after it", async () => {
+    const f = await pair();
+    const later = await newSession(1, 120);
+    expect((await f.a.client.rpc("book_class", { p_session: later.id })).error).toBeNull();
+    const laterWaiting = await f.b.client.rpc("book_class", { p_session: later.id });
+    expect(laterWaiting.data.status).toBe("waitlisted");
+    await db.from("memberships").update({ ends_at: new Date(Date.now() + 72 * 3600_000).toISOString() }).eq("id", f.waitingMembership.id).throwOnError();
+    expect((await booking(f.waiting.id)).status).toBe("waitlisted");
+    expect((await booking(laterWaiting.data.id)).status).toBe("cancelled");
+  });
+
   it("preserves the existing past-due grace policy for reservations and check-in", async () => {
     const athlete = await newAthlete("past-due-grace"); const membership = await makeMember(athlete.id);
     const session = await newSession(1, 1);

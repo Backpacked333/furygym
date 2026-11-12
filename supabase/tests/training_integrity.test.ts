@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { gymId, makeMember, newAthlete as createAthlete, service, signIn } from "./helpers";
+import { addDays, gymId, makeMember, newAthlete as createAthlete, service, signIn } from "./helpers";
 
 const athletes: string[] = [];
 const workouts: string[] = [];
@@ -32,6 +32,58 @@ async function workout() {
 }
 
 describe("workout integrity", () => {
+  it("preserves removed blocks when replacing current results, including repeated and failed edits", async () => {
+    const athlete = await newAthlete("removed-block");
+    await makeMember(athlete.id);
+    const w = await workout();
+    const db = service();
+    const removed = await db.from("workout_items").insert({ workout_id: w.id, title: "Row", metrics: ["time"] }).select().single();
+    expect(removed.error).toBeNull();
+    const args = { p_workout: w.id, p_performed_on: today, p_notes: "Original", p_entries: [
+      { workout_item_id: w.item, load: 100, load_unit: "kg", reps: 5 },
+      { workout_item_id: removed.data!.id, set_index: 1, time_seconds: 120 },
+      { workout_item_id: removed.data!.id, set_index: 2, time_seconds: 125 },
+    ] };
+    const saved = await athlete.client.rpc("submit_workout_log", args);
+    expect(saved.error).toBeNull();
+    const owner = await signIn("owner@furyco.test");
+    expect((await owner.from("workout_items").delete().eq("id", removed.data!.id)).error).toBeNull();
+    const history = async () => (await athlete.client.from("workout_log_entries").select("id, workout_item_id, load, time_seconds, performed_on").eq("log_id", saved.data.log_id).order("id").throwOnError()).data!;
+    const retained = (await history()).filter((entry) => entry.workout_item_id === null);
+    expect(retained).toHaveLength(2);
+    const correctedDate = addDays(today, -1);
+    const edit = { ...args, p_performed_on: correctedDate, p_notes: "Corrected", p_entries: [{ workout_item_id: w.item, load: 110, load_unit: "kg", reps: 5 }] };
+    for (let retry = 0; retry < 2; retry++) {
+      expect((await athlete.client.rpc("submit_workout_log", edit)).error).toBeNull();
+      const entries = await history();
+      expect(entries).toHaveLength(3);
+      expect(entries.filter((entry) => entry.workout_item_id === null)).toEqual(retained.map((entry) => ({ ...entry, performed_on: correctedDate })));
+      expect(entries.find((entry) => entry.workout_item_id === w.item)?.load).toBe(110);
+    }
+    const beforeFailure = await history();
+    expect((await athlete.client.rpc("submit_workout_log", { ...args, p_notes: "Must roll back" })).error?.message).toBe("invalid_workout_item");
+    expect(await history()).toEqual(beforeFailure);
+    expect((await athlete.client.from("workout_logs").select("notes").eq("id", saved.data.log_id).single()).data?.notes).toBe("Corrected");
+  });
+
+  it("allows corrections to owned history after membership expiry but denies new workout access", async () => {
+    const athlete = await newAthlete("expired-history");
+    const membership = await makeMember(athlete.id);
+    const logged = await workout();
+    const unlogged = await workout();
+    const args = { p_workout: logged.id, p_performed_on: today, p_entries: [{ workout_item_id: logged.item, load: 100, reps: 5 }] };
+    const saved = await athlete.client.rpc("submit_workout_log", args);
+    expect(saved.error).toBeNull();
+    await service().from("memberships").update({ ends_at: new Date(Date.now() - 60_000).toISOString() }).eq("id", membership.id).throwOnError();
+    const edited = await athlete.client.rpc("submit_workout_log", { ...args, p_notes: "History correction" });
+    expect(edited.error).toBeNull();
+    expect(edited.data.log_id).toBe(saved.data.log_id);
+    expect((await athlete.client.rpc("submit_workout_log", { ...args, p_workout: unlogged.id, p_entries: [] })).error?.message).toBe("workout_locked");
+    const other = await newAthlete("other-history");
+    expect((await other.client.from("workout_logs").select("id").eq("id", saved.data.log_id)).data).toEqual([]);
+    expect((await other.client.rpc("submit_workout_log", args)).error?.message).toBe("workout_locked");
+  });
+
   it("prevents deleting logged workouts below the UI but permits deleting unused workouts", async () => {
     const athlete = await newAthlete("retained-history");
     await makeMember(athlete.id);
