@@ -217,6 +217,141 @@ private final class BookingAccessProtocol: URLProtocol {
     }
 }
 
+final class TransactionRetryTests: XCTestCase {
+    private func backend(failures: Int = 1, code: String = "40P01", networkFailure: Bool = false) async throws -> Backend {
+        TransactionRetryProtocol.configure(failures: failures, code: code, networkFailure: networkFailure)
+        let session = URLSessionConfiguration.ephemeral
+        session.protocolClasses = [TransactionRetryProtocol.self]
+        let url = URL(string: "https://transaction-tests.invalid")!
+        let backend = Backend(config: AppConfig(supabaseURL: url, supabaseAnonKey: "fixture", webBaseURL: url), options: .init(
+            auth: .init(storage: TestAuthStorage(), autoRefreshToken: false, emitLocalSessionAsInitialSession: true),
+            global: .init(session: URLSession(configuration: session))
+        ))
+        try await backend.signIn(email: "athlete@example.invalid", password: "fixture")
+        return backend
+    }
+
+    func testCancellationRetriesRolledBackTransactionsWithTheSameBody() async throws {
+        let backend = try await backend(failures: 2)
+        let booking = UUID()
+        try await backend.cancelBooking(id: booking)
+        let requests = TransactionRetryProtocol.requests
+        XCTAssertEqual(requests.count, 3)
+        for request in requests {
+            XCTAssertEqual(request.method, "POST")
+            XCTAssertEqual(request.authorization, "Bearer fixture-access-token")
+            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: request.body) as? [String: String])
+            XCTAssertEqual(payload["p_booking"]?.lowercased(), booking.uuidString.lowercased())
+        }
+    }
+
+    func testReturningBookingRPCAlsoRetries() async throws {
+        let backend = try await backend()
+        let status = try await backend.book(sessionID: UUID())
+        XCTAssertEqual(status, .booked)
+        XCTAssertEqual(TransactionRetryProtocol.requests.count, 2)
+    }
+
+    func testRepeatedDeadlocksStopAfterThreeAttempts() async throws {
+        let backend = try await backend(failures: 10)
+        do { try await backend.cancelBooking(id: UUID()); XCTFail("Must stop retrying") }
+        catch let error as PostgrestError { XCTAssertEqual(error.code, "40P01") }
+        XCTAssertEqual(TransactionRetryProtocol.requests.count, 3)
+    }
+
+    func testBusinessAndNetworkFailuresAreNeverReplayed() async throws {
+        for code in ["42501", "23505", "P0001", "40001"] {
+            let backend = try await backend(code: code)
+            do { try await backend.cancelBooking(id: UUID()); XCTFail("Must preserve the error") }
+            catch let error as PostgrestError { XCTAssertEqual(error.code, code) }
+            XCTAssertEqual(TransactionRetryProtocol.requests.count, 1)
+        }
+        let backend = try await backend(networkFailure: true)
+        do { try await backend.cancelBooking(id: UUID()); XCTFail("The commit outcome is unknown") }
+        catch { XCTAssertTrue(error is URLError) }
+        XCTAssertEqual(TransactionRetryProtocol.requests.count, 1)
+    }
+
+    func testCancellationStopsRetries() async throws {
+        let backend = try await backend()
+        let failed = expectation(description: "first attempt failed")
+        TransactionRetryProtocol.onFailure = { failed.fulfill() }
+        let task = Task { try await backend.cancelBooking(id: UUID()) }
+        await fulfillment(of: [failed], timeout: 2)
+        task.cancel()
+        do { try await task.value; XCTFail("Cancelled work must not replay") } catch { }
+        XCTAssertEqual(TransactionRetryProtocol.requests.count, 1)
+    }
+
+    func testAccountChangeStopsRetries() async throws {
+        let backend = try await backend()
+        let failed = expectation(description: "first attempt failed")
+        TransactionRetryProtocol.onFailure = { failed.fulfill() }
+        let task = Task { try await backend.cancelBooking(id: UUID()) }
+        await fulfillment(of: [failed], timeout: 2)
+        await backend.signOut()
+        do { try await task.value; XCTFail("Must not replay for a different auth session") }
+        catch { XCTAssertTrue(error is CancellationError) }
+        XCTAssertEqual(TransactionRetryProtocol.requests.count, 1)
+    }
+}
+
+private final class TransactionRetryProtocol: URLProtocol {
+    struct RecordedRequest {
+        let method: String?
+        let authorization: String?
+        let body: Data
+    }
+    private static let lock = NSLock()
+    private static var recorded: [RecordedRequest] = []
+    private static var failures = 0
+    private static var code = "40P01"
+    private static var networkFailure = false
+    static var onFailure: (() -> Void)?
+    static var requests: [RecordedRequest] { lock.lock(); defer { lock.unlock() }; return recorded }
+    static func configure(failures: Int, code: String, networkFailure: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        recorded = []; self.failures = failures; self.code = code; self.networkFailure = networkFailure; onFailure = nil
+    }
+    override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "transaction-tests.invalid" }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+    override func startLoading() {
+        let url = request.url!
+        var status = 200
+        var body = "{}"
+        var callback: (() -> Void)?
+        if url.path == "/auth/v1/token" {
+            body = """
+            {"access_token":"fixture-access-token","token_type":"bearer","expires_in":3600,"expires_at":\(Date().timeIntervalSince1970 + 3600),"refresh_token":"fixture-refresh-token","user":{"id":"00000000-0000-4000-a000-000000000001","aud":"authenticated","role":"authenticated","app_metadata":{},"user_metadata":{},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            """
+        } else if url.path.hasPrefix("/rest/v1/") {
+            var data = request.httpBody ?? Data()
+            if let stream = request.httpBodyStream {
+                stream.open(); defer { stream.close() }
+                var buffer = [UInt8](repeating: 0, count: 4096)
+                while true {
+                    let count = stream.read(&buffer, maxLength: buffer.count)
+                    if count <= 0 { break }
+                    data.append(contentsOf: buffer.prefix(count))
+                }
+            }
+            Self.lock.lock()
+            Self.recorded.append(RecordedRequest(method: request.httpMethod, authorization: request.value(forHTTPHeaderField: "Authorization"), body: data))
+            let failed = Self.recorded.count <= Self.failures
+            let networkFailure = Self.networkFailure
+            if failed { status = 500; body = "{\"code\":\"\(Self.code)\",\"message\":\"transaction rejected\"}"; callback = Self.onFailure }
+            else { body = "{\"id\":\"00000000-0000-4000-a000-000000000002\",\"status\":\"booked\"}" }
+            Self.lock.unlock()
+            if networkFailure { client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost)); return }
+        }
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+        callback?()
+    }
+}
+
 private final class TestAuthStorage: AuthLocalStorage, @unchecked Sendable {
     private let lock = NSLock()
     private var values: [String: Data] = [:]

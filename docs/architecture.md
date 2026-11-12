@@ -16,6 +16,12 @@
 - **Rules live in the database.** Booking a class, cancelling, check-in, building an athlete's
   calendar, submitting a workout log and signing a waiver are Postgres functions. The iOS app and
   the web console call the same function, so they cannot drift apart.
+- **Deadlock recovery retries the whole database request.** Membership changes and seat changes
+  can acquire row locks in opposite order. The web and native clients retry PostgREST's confirmed
+  `40P01` rollback up to twice with jittered backoff, preserving credit accounting and waitlist order.
+  This recovers deadlock victims rather than eliminating lock cycles; sustained contention can
+  still exhaust the retry limit. Other SQL errors, ambiguous network failures, and Stripe calls
+  are not replayed by this mechanism. New database clients need the same transaction-boundary policy.
 - **Stripe is the only payment system.** The web app creates checkout sessions and receives Stripe's
   webhook. The webhook is the single writer of paid memberships, enrollments and payment records.
 
