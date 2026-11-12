@@ -184,6 +184,10 @@ describe("gym display v2", () => {
       await admin.from("class_sessions").update({ starts_at: minutes(10) }).eq("id", following.id);
       expect((await show()).next_class.title).toBe("Display Following");
 
+      // and it keeps the card once it starts, even though the earlier class is still running
+      await admin.from("class_sessions").update({ starts_at: minutes(-1) }).eq("id", following.id);
+      expect((await show()).next_class.title).toBe("Display Following");
+
       // a cancelled class is skipped
       await admin.from("class_sessions").update({ status: "cancelled" }).eq("id", following.id);
       expect((await show()).next_class.title).toBe("Display Long Class");

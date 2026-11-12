@@ -73,8 +73,9 @@ begin
   ) wk;
 
   -- The class on the floor stays up until it ends. From fifteen minutes before the next class starts
-  -- that one takes over, so arriving athletes see their own countdown and check-ins. Otherwise the
-  -- next class starting within three hours.
+  -- that one takes over, so arriving athletes see their own countdown and check-ins, and it keeps
+  -- the card once it starts even if the earlier class is still running. Otherwise the next class
+  -- starting within three hours.
   select jsonb_build_object(
       'id', s.id,
       'title', s.title,
@@ -104,7 +105,9 @@ begin
     and s.starts_at <= now() + interval '3 hours'
     and (v_state.track_id is null or s.track_id = v_state.track_id)
   order by
-    (s.starts_at > now() and s.starts_at <= now() + interval '15 minutes') desc,
+    -- of the classes on the floor or about to start, the one that started last; else the soonest
+    (s.starts_at <= now() + interval '15 minutes') desc,
+    case when s.starts_at <= now() + interval '15 minutes' then s.starts_at end desc,
     s.starts_at, s.title, s.id
   limit 1;
 
