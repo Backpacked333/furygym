@@ -33,7 +33,8 @@ export async function rotateDisplayToken(): Promise<ActionState> {
   const { supabase, gym } = await requireAdmin();
   const { error } = await supabase
     .from("gym_secrets")
-    .update({ display_token: randomBytes(24).toString("hex"), updated_at: new Date().toISOString() })
+    // No screen has opened the new link yet, so the old link's last check-in must not carry over.
+    .update({ display_token: randomBytes(24).toString("hex"), display_seen_at: null, updated_at: new Date().toISOString() })
     .eq("gym_id", gym.id);
   if (error) return fail(error);
   revalidatePath("/admin/display");

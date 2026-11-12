@@ -177,6 +177,26 @@ test.describe("gym screen reliability", () => {
     await expect(page.getByTestId("screen-status")).toContainText("Not connected");
   });
 
+  test("replacing the link forgets the old link's screen", async ({ page }) => {
+    const secrets = () => db().from("gym_secrets");
+    await secrets().update({ display_seen_at: new Date().toISOString() }).not("gym_id", "is", null);
+    try {
+      await signIn(page, "owner@furyco.test");
+      await page.goto("/admin/display");
+      await expect(page.getByTestId("screen-status")).toContainText("Connected");
+      page.once("dialog", (dialog) => dialog.accept());
+      await page.getByRole("button", { name: /^Replace/ }).click();
+      // nothing has opened the new link, so the console must not say a screen is on it
+      await expect(page.getByTestId("screen-status")).toContainText("Not set up");
+      const { data } = await secrets().select("display_token, display_seen_at").single();
+      expect(data!.display_token).not.toBe("demo-display-token");
+      expect(data!.display_seen_at).toBeNull();
+      expect((await page.request.get("/api/display/demo-display-token")).status()).toBe(404);
+    } finally {
+      await secrets().update({ display_token: "demo-display-token", display_seen_at: null }).not("gym_id", "is", null);
+    }
+  });
+
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }]) {
     test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it says so`, async ({ page }) => {
       const today = await gymToday();
