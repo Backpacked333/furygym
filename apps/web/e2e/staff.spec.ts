@@ -177,6 +177,16 @@ test.describe("gym screen reliability", () => {
     await expect(page.getByTestId("screen-status")).toContainText("Not connected");
   });
 
+  test("a screen whose own date is wrong keeps today's workout when it starts offline", async ({ page }) => {
+    await page.clock.install({ time: Date.now() + 2 * 86_400_000 });
+    await page.route("**/api/display/**", (route) => route.abort());
+    await page.goto("/display/demo-display-token");
+    const board = page.locator("main");
+    await expect(board).toHaveAttribute("data-status", "stale");
+    await expect(board).toContainText("Back Squat");
+    await expect(board).toContainText("Offline");
+  });
+
   test("replacing the link forgets the old link's screen", async ({ page }) => {
     const secrets = () => db().from("gym_secrets");
     await secrets().update({ display_seen_at: new Date().toISOString() }).not("gym_id", "is", null);

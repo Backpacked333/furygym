@@ -102,7 +102,14 @@ export function DisplayBoard({ token, preview = false, initial }: { token: strin
     };
     // Refresh straight away: it reports the screen as connected and reads the server's clock.
     const first = setTimeout(() => {
-      setNow(Date.now());
+      const loaded = Date.now();
+      // Until the first reply, take the server's clock from the page itself, so a TV with the wrong
+      // date does not judge today's workout as yesterday's if that reply never comes.
+      setView((v) => {
+        const served = new Date(v.data.server_time).getTime();
+        return v.offset === 0 && Number.isFinite(served) ? { ...v, offset: served - loaded } : v;
+      });
+      setNow(loaded);
       void refresh();
     }, 0);
     const poll = setInterval(refresh, REFRESH_MS);
