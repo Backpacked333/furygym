@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toCsv } from "@/lib/csv";
+import { classTimer, clockOffset, screenStatus } from "@/lib/display";
 import { addDays, dateInZone, startOfWeek, zonedToUtc } from "@/lib/format";
 import { buildCheckoutSession, validStartDate } from "@/lib/stripe/checkout";
 import { publishState, workoutSchema } from "@/lib/workouts";
@@ -112,5 +113,34 @@ describe("csv export", () => {
     );
     // negative amounts are numbers, not formulas
     expect(toCsv(["net", "note"], [["-1.03", "-cmd|' /C calc'!A0"]])).toBe("net,note\r\n-1.03,'-cmd|' /C calc'!A0\r\n");
+  });
+});
+
+describe("gym display", () => {
+  const at = (iso: string) => new Date(iso).getTime();
+  const session = { starts_at: "2026-11-12T12:00:00Z", ends_at: "2026-11-12T13:30:00Z" };
+
+  it("counts down to a class, shows it in progress until it ends, then drops it", () => {
+    expect(classTimer(session, at("2026-11-12T10:54:55Z"))).toEqual({ label: "Starts in", value: "1:05:05", live: false });
+    expect(classTimer(session, at("2026-11-12T11:57:30Z"))).toEqual({ label: "Starts in", value: "2:30", live: false });
+    expect(classTimer(session, at("2026-11-12T12:00:00Z"))).toMatchObject({ value: "In progress", live: true });
+    // well past the old half-hour cut-off, a ninety-minute class is still running
+    expect(classTimer(session, at("2026-11-12T13:29:59Z"))).toMatchObject({ value: "In progress", live: true });
+    expect(classTimer(session, at("2026-11-12T13:30:00Z"))).toBeNull();
+  });
+
+  it("corrects for a screen whose clock is wrong", () => {
+    // the device thinks it is 11:00; the server answered 12:00:00.5 to a request that took one second
+    const sent = at("2026-11-12T11:00:00Z");
+    expect(clockOffset("2026-11-12T12:00:00.500Z", sent, sent + 1000)).toBe(3_600_000);
+    expect(clockOffset(undefined, sent, sent)).toBeNull();
+    expect(clockOffset("not a time", sent, sent)).toBeNull();
+  });
+
+  it("reports a screen as connected only while it keeps checking in", () => {
+    const now = at("2026-11-12T12:00:00Z");
+    expect(screenStatus(null, now)).toBe("never");
+    expect(screenStatus("2026-11-12T11:59:20Z", now)).toBe("online");
+    expect(screenStatus("2026-11-12T11:58:29Z", now)).toBe("offline");
   });
 });

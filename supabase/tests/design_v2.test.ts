@@ -147,6 +147,78 @@ describe("gym display v2", () => {
     }
   });
 
+  it("keeps a class on screen until it ends, and hands over to the next one as athletes arrive", async () => {
+    const admin = service();
+    const gym = await gymId();
+    const coach = await signIn("coach@furyco.test");
+    const { data: track, error: trackError } = await admin.from("tracks").insert({ gym_id: gym, name: "Display timing", slug: `display-timing-${Date.now()}`, kind: "facility" }).select().single();
+    if (trackError) throw trackError;
+    const minutes = (n: number) => new Date(Date.now() + n * 60_000).toISOString();
+    const add = async (title: string, from: number, to: number) => {
+      const { data, error } = await admin.from("class_sessions").insert({ gym_id: gym, track_id: track!.id, title, starts_at: minutes(from), ends_at: minutes(to), capacity: 8 }).select().single();
+      if (error) throw error;
+      return data!;
+    };
+
+    await coach.from("display_state").update({ track_id: track!.id }).eq("gym_id", gym);
+    try {
+      const show = async () => (await anon().rpc("get_display", { p_token: "demo-display-token" })).data;
+
+      // a class that finished is never the current class
+      await add("Display Finished", -120, -60);
+      expect((await show()).next_class).toBeNull();
+
+      // fifty minutes into a ninety-minute class, it is still the class on the floor
+      const long = await add("Display Long Class", -50, 40);
+      let data = await show();
+      expect(data.next_class).toMatchObject({ title: "Display Long Class", starts_at: expect.any(String), ends_at: expect.any(String) });
+      expect(new Date(data.next_class.ends_at).getTime()).toBe(new Date(long.ends_at).getTime());
+      // screens count down against the server's clock
+      expect(Math.abs(new Date(data.server_time).getTime() - Date.now())).toBeLessThan(60_000);
+
+      // the next class does not take over while it is still a while away
+      const following = await add("Display Following", 40, 100);
+      expect((await show()).next_class.title).toBe("Display Long Class");
+
+      // but does once athletes are arriving for it
+      await admin.from("class_sessions").update({ starts_at: minutes(10) }).eq("id", following.id);
+      expect((await show()).next_class.title).toBe("Display Following");
+
+      // a cancelled class is skipped
+      await admin.from("class_sessions").update({ status: "cancelled" }).eq("id", following.id);
+      expect((await show()).next_class.title).toBe("Display Long Class");
+    } finally {
+      await coach.from("display_state").update({ track_id: null }).eq("gym_id", gym);
+      await admin.from("class_sessions").delete().eq("track_id", track!.id);
+      await admin.from("tracks").delete().eq("id", track!.id);
+    }
+  });
+
+  it("records when a screen last used the display link, only for the real link", async () => {
+    const admin = service();
+    const gym = await gymId();
+    const seenAt = async () => (await admin.from("gym_secrets").select("display_seen_at").eq("gym_id", gym).single()).data!.display_seen_at as string | null;
+    await admin.from("gym_secrets").update({ display_seen_at: null }).eq("gym_id", gym);
+
+    expect((await anon().rpc("display_ping", { p_token: "not-the-token" })).error).toBeNull();
+    expect(await seenAt()).toBeNull();
+
+    expect((await anon().rpc("display_ping", { p_token: "demo-display-token" })).error).toBeNull();
+    const first = await seenAt();
+    expect(Math.abs(new Date(first!).getTime() - Date.now())).toBeLessThan(60_000);
+
+    // several screens share one link: a second check-in moments later does not write again
+    await anon().rpc("display_ping", { p_token: "demo-display-token" });
+    expect(await seenAt()).toBe(first);
+
+    // staff can read it for the console; athletes and the public cannot
+    const coach = await signIn("coach@furyco.test");
+    expect((await coach.from("gym_secrets").select("display_seen_at").eq("gym_id", gym)).data).toHaveLength(1);
+    const athlete = await newAthlete("display-seen");
+    expect((await athlete.client.from("gym_secrets").select("display_seen_at")).data ?? []).toHaveLength(0);
+    expect((await anon().from("gym_secrets").select("display_seen_at")).data ?? []).toHaveLength(0);
+  });
+
   it("uses the design system's track colours and exposes the milestone setting", async () => {
     const { data: tracks } = await anon().from("tracks").select("slug, color").order("position");
     expect(tracks).toEqual([

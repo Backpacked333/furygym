@@ -103,6 +103,133 @@ test.describe("coach publishes a workout", () => {
   });
 });
 
+test.describe("gym screen reliability", () => {
+  test("a screen keeps the workout through an outage, says it is offline, and goes blank when its link is replaced", async ({ page }) => {
+    // the screen refreshes once as it opens; let that finish so the checks below drive every later refresh
+    const opened = page.waitForResponse((r) => r.url().includes("/api/display/"));
+    await page.goto("/display/demo-display-token");
+    await opened;
+    const board = page.getByRole("main");
+    await expect(board).toHaveAttribute("data-status", "live");
+    await expect(page.getByTestId("display-workout").first()).toBeVisible();
+    // the screen re-checks as soon as the browser says the network is back
+    const recheck = () => page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+    await page.route("**/api/display/**", (route) => route.abort());
+    await recheck();
+    await expect(board).toHaveAttribute("data-status", "stale");
+    await expect(page.getByText(/Offline · last updated .+ · reconnecting/)).toBeVisible();
+    await expect(page.getByTestId("display-workout").first()).toBeVisible();
+
+    // a server error is an outage too, not a reason to blank the screen
+    await page.unroute("**/api/display/**");
+    await page.route("**/api/display/**", (route) => route.fulfill({ status: 503, json: { error: "unavailable" } }));
+    await recheck();
+    await expect(board).toHaveAttribute("data-status", "stale");
+    await expect(page.getByTestId("display-workout").first()).toBeVisible();
+
+    await page.unroute("**/api/display/**");
+    await recheck();
+    await expect(board).toHaveAttribute("data-status", "live");
+    await expect(page.getByText(/Offline/)).toHaveCount(0);
+
+    // replacing the link: the real endpoint answers "not found" for a token that no longer exists
+    const gone = await page.request.get("/api/display/not-the-token");
+    expect(gone.status()).toBe(404);
+    expect(await gone.json()).toEqual({ error: "not_found" });
+    await page.route("**/api/display/**", (route) => route.fulfill({ status: 404, json: { error: "not_found" } }));
+    await recheck();
+    await expect(board).toHaveAttribute("data-status", "revoked");
+    await expect(page.getByText("This display link is no longer active")).toBeVisible();
+    await expect(page.getByTestId("display-workout")).toHaveCount(0);
+    await expect(page.getByTestId("display-class")).toHaveCount(0);
+    await page.screenshot({ path: "test-results/display-revoked.png" });
+  });
+
+  test("the console reports whether a screen is really connected; a staff preview does not count", async ({ page, context }) => {
+    const seenAt = async () => (await db().from("gym_secrets").select("display_seen_at").single()).data!.display_seen_at;
+    await db().from("gym_secrets").update({ display_seen_at: null }).not("gym_id", "is", null);
+
+    await signIn(page, "coach@furyco.test");
+    await page.goto("/admin/display");
+    await expect(page.getByTestId("screen-status")).toContainText("Not set up");
+
+    const previewed = context.waitForEvent("response", (r) => r.url().includes("/api/display/") && r.url().includes("preview"));
+    const popup = context.waitForEvent("page");
+    await page.getByRole("link", { name: "Open full preview" }).click();
+    const preview = await popup;
+    expect((await previewed).status()).toBe(200);
+    await expect(preview.getByRole("main")).toHaveAttribute("data-status", "live");
+    expect(await seenAt()).toBeNull();
+    await preview.close();
+
+    const tv = await context.newPage();
+    await tv.goto("/display/demo-display-token");
+    await expect.poll(seenAt).not.toBeNull();
+    await page.reload();
+    await expect(page.getByTestId("screen-status")).toContainText("Connected");
+    await expect(page.getByTestId("screen-status")).not.toContainText("Not connected");
+    await tv.close();
+
+    // a screen that stopped checking in is reported as such
+    await db().from("gym_secrets").update({ display_seen_at: new Date(Date.now() - 10 * 60_000).toISOString() }).not("gym_id", "is", null);
+    await page.reload();
+    await expect(page.getByTestId("screen-status")).toContainText("Not connected");
+  });
+
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }]) {
+    test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it says so`, async ({ page }) => {
+      const today = await gymToday();
+      const title = `E2E Long Day ${Date.now()}`;
+      const { data: track } = await db().from("tracks").select("id, gym_id").eq("slug", "strength").single();
+      const { data: workout, error } = await db()
+        .from("workouts")
+        .insert({ gym_id: track!.gym_id, track_id: track!.id, title, scheduled_date: today, status: "published", publish_at: new Date(Date.now() - 60_000).toISOString() })
+        .select("id")
+        .single();
+      if (error) throw error;
+      const items = Array.from({ length: 8 }, (_, i) => ({
+        workout_id: workout!.id,
+        position: i,
+        section: `Part ${i + 1}`,
+        title: `Long block ${i + 1}`,
+        prescription: "5 rounds for time:\n20 wall balls (20/14)\n15 toes-to-bar\n10 power cleans (135/95)\n400 m run\nRest 2:00 between rounds",
+        scaling: "Reduce the load, hang knee raises, 300 m run",
+      }));
+      await db().from("workout_items").insert(items);
+      const state = (values: Record<string, unknown>) => db().from("display_state").update(values).not("gym_id", "is", null);
+      const board = page.getByRole("main");
+      const overflow = () => board.evaluate((el) => el.scrollHeight - el.clientHeight);
+
+      try {
+        await page.setViewportSize(viewport);
+
+        // pinned on its own, the eight-block workout is shrunk until all of it is on the screen
+        await state({ mode: "manual", workout_id: workout!.id, show_coach_notes: true, message: "Bring a friend Friday — guests train free" });
+        await page.goto("/display/demo-display-token");
+        await expect(page.getByRole("heading", { name: title })).toBeVisible();
+        await expect.poll(overflow).toBeLessThanOrEqual(1);
+        await expect(page.getByTestId("display-overflow")).toBeHidden();
+        for (const block of await page.getByText(/^Long block \d$/).all()) await expect(block).toBeInViewport({ ratio: 1 });
+        const pinned = await page.getByTestId("display-workout").boundingBox();
+        expect(pinned!.y + pinned!.height).toBeLessThanOrEqual(viewport.height);
+        await page.screenshot({ path: `test-results/display-long-${viewport.width}.png` });
+
+        // with every track's workout on as well it cannot all fit at a readable size: the screen says so, and never scrolls
+        await state({ mode: "auto", workout_id: null });
+        await page.goto("/display/demo-display-token");
+        await expect(page.getByTestId("display-workout")).toHaveCount(3);
+        await expect(page.getByTestId("display-overflow")).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
+        await page.screenshot({ path: `test-results/display-too-long-${viewport.width}.png` });
+      } finally {
+        await state({ mode: "auto", workout_id: null, show_coach_notes: false, message: null });
+        await db().from("workouts").delete().eq("id", workout!.id);
+      }
+    });
+  }
+});
+
 test.describe("front desk", () => {
   test("admin adds a member to a class and checks them in", async ({ page }) => {
     const { data: session } = await db()

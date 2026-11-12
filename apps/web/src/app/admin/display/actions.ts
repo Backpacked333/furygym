@@ -37,5 +37,5 @@ export async function rotateDisplayToken(): Promise<ActionState> {
     .eq("gym_id", gym.id);
   if (error) return fail(error);
   revalidatePath("/admin/display");
-  return { ok: "New link created. Update the address on each screen." };
+  return { ok: "New link created. Screens on the old link go blank within 30 seconds; open the new link on each one." };
 }
