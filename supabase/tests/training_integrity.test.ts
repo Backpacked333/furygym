@@ -91,4 +91,25 @@ describe("workout integrity", () => {
     expect(edited.data.log_id).toBe(saved.data.log_id);
     expect((await athlete.client.from("workout_logs").select("id")).data).toHaveLength(1);
   });
+
+  it("keeps results for a block the coach later removed when the athlete edits the log", async () => {
+    const athlete = await newAthlete("removed-block"); await makeMember(athlete.id);
+    const db = service();
+    const w = await workout();
+    const row = await db.from("workout_items").insert({ workout_id: w.id, title: "Row 2k", position: 1, metrics: ["time"] }).select().single();
+    expect(row.error).toBeNull();
+    const squat = { workout_item_id: w.item, set_index: 1, load: 200, reps: 5 };
+    const saved = await athlete.client.rpc("submit_workout_log", {
+      p_workout: w.id, p_performed_on: today, p_entries: [squat, { workout_item_id: row.data!.id, set_index: 1, time_seconds: 450 }],
+    });
+    expect(saved.error).toBeNull();
+    expect((await db.from("workout_items").delete().eq("id", row.data!.id)).error).toBeNull();
+
+    const edited = await athlete.client.rpc("submit_workout_log", { p_workout: w.id, p_performed_on: today, p_entries: [{ ...squat, load: 205 }] });
+    expect(edited.error).toBeNull();
+    const entries = (await db.from("workout_log_entries").select("workout_item_id, load, time_seconds").eq("log_id", saved.data.log_id)).data!;
+    expect(entries).toHaveLength(2);
+    expect(entries.find((e) => e.workout_item_id === null)?.time_seconds).toBe(450);
+    expect(entries.find((e) => e.workout_item_id === w.item)?.load).toBe(205);
+  });
 });

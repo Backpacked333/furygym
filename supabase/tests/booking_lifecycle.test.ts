@@ -131,4 +131,47 @@ describe("booking lifecycle", () => {
     expect((await f.a.client.from("workouts").select("id")).data).toEqual([]);
     expect((await f.a.client.rpc("book_class", { p_session: f.session.id })).error?.message).toBe("not_a_member");
   });
+
+  it("freezing one plan leaves places that another plan still covers", async () => {
+    const today = (await db.rpc("gym_today", { p_gym: gym })).data as string;
+    const until = new Date(`${today}T00:00:00Z`); until.setUTCDate(until.getUTCDate() + 14);
+    const athlete = await newAthlete("two-plans");
+    const pack = await makeMember(athlete.id, { credits: 3 });
+    const open = await newSession(2);
+    const full = await newSession(1);
+    const holder = await newAthlete("two-plans-holder"); await makeMember(holder.id);
+    expect((await holder.client.rpc("book_class", { p_session: full.id })).error).toBeNull();
+
+    // booked on the pack before the recurring plan exists, and waitlisted on a full class
+    const paid = await athlete.client.rpc("book_class", { p_session: open.id });
+    const waiting = await athlete.client.rpc("book_class", { p_session: full.id });
+    expect(paid.data.membership_id).toBe(pack.id); expect(waiting.data.status).toBe("waitlisted");
+    const recurring = await makeMember(athlete.id);
+
+    const frozen = await db.rpc("freeze_membership", { p_user: athlete.id, p_membership: recurring.id, p_until: until.toISOString().slice(0, 10) });
+    expect(frozen.error).toBeNull();
+    expect(frozen.data.released_bookings).toBe(0);
+    expect((await booking(paid.data.id)).status).toBe("booked");
+    expect((await booking(waiting.data.id)).status).toBe("waitlisted");
+    expect((await db.from("memberships").select("credits_remaining").eq("id", pack.id).single()).data?.credits_remaining).toBe(2);
+  });
+
+  it("takes an athlete off waitlists when their last membership ends, but not while another covers the class", async () => {
+    const holder = await newAthlete("waitlist-holder"); await makeMember(holder.id);
+    const session = await newSession(1);
+    expect((await holder.client.rpc("book_class", { p_session: session.id })).error).toBeNull();
+
+    const covered = await newAthlete("waitlist-covered");
+    const first = await makeMember(covered.id); await makeMember(covered.id, { credits: 2 });
+    const lone = await newAthlete("waitlist-lone");
+    const only = await makeMember(lone.id);
+    const keeps = await covered.client.rpc("book_class", { p_session: session.id });
+    const leaves = await lone.client.rpc("book_class", { p_session: session.id });
+    expect(keeps.data.status).toBe("waitlisted"); expect(leaves.data.status).toBe("waitlisted");
+
+    expect((await db.from("memberships").update({ status: "cancelled" }).eq("id", first.id)).error).toBeNull();
+    expect((await db.from("memberships").update({ status: "cancelled" }).eq("id", only.id)).error).toBeNull();
+    expect((await booking(keeps.data.id)).status).toBe("waitlisted");
+    expect((await booking(leaves.data.id)).status).toBe("cancelled");
+  });
 });

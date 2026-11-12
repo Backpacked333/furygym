@@ -384,6 +384,11 @@ begin
     perform 1 from public.class_sessions where id = v_session_id for update;
     select * into v_booking from public.bookings where id = v_booking_id for update;
     continue when not found or v_booking.status not in ('booked', 'waitlisted');
+    -- A seat paid for by another plan stays; so does a waitlist place another plan still covers.
+    continue when v_booking.status = 'booked' and v_booking.membership_id is distinct from p_membership;
+    continue when v_booking.status = 'waitlisted' and exists (
+      select 1 from public.class_sessions s
+      where s.id = v_session_id and private.find_entitlement(p_user, s.gym_id, s.starts_at) is not null);
     if v_booking.credit_used and v_booking.membership_id is not null then
       update public.memberships set credits_remaining = credits_remaining + 1
         where id = v_booking.membership_id and credits_remaining is not null;

@@ -22,6 +22,22 @@ begin
       where id = v_booking.id;
     perform private.promote_waitlist(v_session);
   end loop;
+
+  -- A waitlist place carries no membership, so it is checked by what still covers the class. A
+  -- freeze releases its own window in freeze_membership.
+  if new.status not in ('active', 'past_due', 'frozen') or new.ends_at is not null then
+    for v_session in
+      select s.id from public.class_sessions s join public.bookings b on b.session_id = s.id
+      where b.user_id = new.user_id and b.gym_id = new.gym_id and b.status = 'waitlisted' and s.starts_at > now()
+      order by s.id
+    loop
+      perform 1 from public.class_sessions where id = v_session for update;
+      update public.bookings b set status = 'cancelled', cancelled_at = now()
+        from public.class_sessions s
+        where s.id = v_session and b.session_id = s.id and b.user_id = new.user_id and b.status = 'waitlisted'
+          and private.find_entitlement(new.user_id, s.gym_id, s.starts_at) is null;
+    end loop;
+  end if;
   return new;
 end $$;
 

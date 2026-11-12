@@ -74,7 +74,9 @@ begin
     update public.workout_logs
       set performed_on = p_performed_on, notes = p_notes, rpe = p_rpe, duration_seconds = p_duration_seconds
       where id = v_log_id;
-    delete from public.workout_log_entries where log_id = v_log_id;
+    -- Results for a block the coach has since removed (item reference cleared) are history the
+    -- athlete can no longer resubmit, so only the current blocks' entries are replaced.
+    delete from public.workout_log_entries where log_id = v_log_id and workout_item_id is not null;
   end if;
 
   for v_entry in select * from jsonb_array_elements(coalesce(p_entries, '[]'::jsonb))
