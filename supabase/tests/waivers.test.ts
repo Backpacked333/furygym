@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { gymId, service, signIn } from "./helpers";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { gymId, localEnv, makeMember, newAthlete, service, signIn } from "./helpers";
 
 let gym: string;
 let owner: SupabaseClient;
@@ -73,5 +73,43 @@ describe("publishing a waiver", () => {
     expect(second.error?.code).toBe("23505");
     const repeat = await db.from("waivers").insert({ gym_id: gym, title: "Repeat", body: TEXT, version: original[0].version, active: false });
     expect(repeat.error?.code).toBe("23505");
+  });
+});
+
+describe("who the change log names", () => {
+  const lastActor = async (membership: string) => {
+    const { data } = await service().from("audit_log").select("actor_id").eq("entity", "memberships").eq("entity_id", membership).order("id", { ascending: false }).limit(1).single();
+    return data!.actor_id as string | null;
+  };
+  const actingFor = (headers: Record<string, string>, key = localEnv().serviceKey) =>
+    createClient(localEnv().url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers } });
+
+  it("the staff member the server acted for, and nobody a signed-in user merely claims to be", async () => {
+    const member = await newAthlete("audit-actor");
+    // Unsigned, so no signature holds on to a waiver this file publishes and then removes.
+    const membership = await makeMember(member.id, { sign: false });
+    const { data: staff } = await owner.auth.getUser();
+    const { data: me } = await coach.auth.getUser();
+    const touch = (client: SupabaseClient, credits: number) => client.from("memberships").update({ credits_remaining: credits }).eq("id", membership.id).select("id");
+
+    // No name given: a webhook or scheduled job.
+    expect((await touch(service(), 1)).error).toBeNull();
+    expect(await lastActor(membership.id)).toBeNull();
+
+    // The server, acting for the owner.
+    expect((await touch(actingFor({ "x-fury-actor": staff.user!.id }), 2)).error).toBeNull();
+    expect(await lastActor(membership.id)).toBe(staff.user!.id);
+
+    // Not a user id: ignored, and the change still goes through.
+    expect((await touch(actingFor({ "x-fury-actor": "not-a-uuid" }), 3)).error).toBeNull();
+    expect(await lastActor(membership.id)).toBeNull();
+
+    // A signed-in admin is always themselves, whatever the header says.
+    const { data: session } = await owner.auth.getSession();
+    const spoof = actingFor({ "x-fury-actor": me.user!.id, Authorization: `Bearer ${session.session!.access_token}` }, localEnv().anonKey);
+    const { data: changed, error } = await touch(spoof, 4);
+    expect(error).toBeNull();
+    expect(changed).toHaveLength(1);
+    expect(await lastActor(membership.id)).toBe(staff.user!.id);
   });
 });

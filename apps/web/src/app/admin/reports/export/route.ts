@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const type = params.get("type");
   const from = params.get("from");
   const to = params.get("to");
+  const show = params.get("show");
   if (!isDate(from) || !isDate(to)) return NextResponse.json({ error: "invalid_range" }, { status: 400 });
   const start = zonedToUtc(from, "00:00", gym.timezone).toISOString();
   const end = zonedToUtc(addDays(to, 1), "00:00", gym.timezone).toISOString();
@@ -23,15 +24,15 @@ export async function GET(request: NextRequest) {
   let csv: string;
   try {
     if (type === "payments") {
-      const data = await everyRow((a, b) =>
-        supabase
+      const data = await everyRow((a, b) => {
+        const query = supabase
           .from("payments")
           .select("*, profiles(full_name, email)")
-          .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
-          .order("created_at")
-          .order("id")
-          .range(a, b),
-      );
+          .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`);
+        // The same filters as the Revenue page, so its "full list" link exports what it lists.
+        const shown = show === "refunds" ? query.gt("refunded_cents", 0) : show === "failed" ? query.eq("status", "failed") : query;
+        return shown.order("created_at").order("id").range(a, b);
+      });
       csv = toCsv(
         ["date", "customer", "email", "revenue_stream", "type", "description", "status", "gross_sales", "tax", "charged", "processing_fee", "refunded", "net", "currency", "stripe_payment_intent", "stripe_invoice"],
         data.map((p) => {
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="furyco-${type}-${type === "members" ? `as-of-${dateInZone(new Date(), gym.timezone)}` : `${from}-to-${to}`}.csv"`,
+      "Content-Disposition": `attachment; filename="furyco-${type === "payments" && (show === "refunds" || show === "failed") ? show : type}-${type === "members" ? `as-of-${dateInZone(new Date(), gym.timezone)}` : `${from}-to-${to}`}.csv"`,
       "Cache-Control": "no-store",
     },
   });

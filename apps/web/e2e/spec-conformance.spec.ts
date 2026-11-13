@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { asUser, db, signIn } from "./helpers";
+import { addDays, asUser, db, gymToday, signIn } from "./helpers";
 
 const gymId = async () => (await db().from("gyms").select("id").eq("is_default", true).single()).data!.id as string;
 
@@ -52,11 +52,15 @@ test.describe("reports stay complete as the gym grows", () => {
     await page.goto(`/admin/reports?${range}`);
     await expect(page.getByTestId("transaction-row")).toHaveCount(200);
     await expect(page.getByTestId("transactions-more")).toContainText(`Showing the newest 200 of ${TOTAL}`);
+    await expect(page.getByTestId("refund-count")).toHaveText("5 refunded payments");
 
     await page.goto(`/admin/reports?${range}&show=refunds`);
     await expect(page.getByTestId("transaction-row")).toHaveCount(5);
     await expect(page.getByTestId("transaction-row").first()).toContainText("Refunded $4.00");
     await expect(page.getByTestId("transactions-more")).toHaveCount(0);
+    const refunds = await page.request.get(`/admin/reports/export?type=payments&${range}&show=refunds`);
+    expect(refunds.headers()["content-disposition"]).toContain("furyco-refunds-2020-01-01-to-2020-01-31.csv");
+    expect((await refunds.text()).trim().split("\r\n").slice(1)).toHaveLength(5);
 
     await page.goto(`/admin/reports?${range}&show=failed`);
     await expect(page.getByTestId("transaction-row")).toHaveCount(3);
@@ -129,6 +133,62 @@ test.describe("change log", () => {
     await expect(coachPage).toHaveURL(/\/admin\?denied=1/);
     await context.close();
   });
+});
+
+test("a freeze made from the console is logged under the staff member who made it", async ({ page }) => {
+  const admin = db();
+  const gym = await gymId();
+  const name = `Freeze Actor ${Date.now()}`;
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email: `freeze-actor-${Date.now()}@test.furyco.test`,
+    password: "FuryDemo123!",
+    email_confirm: true,
+    user_metadata: { full_name: name },
+  });
+  if (error) throw error;
+  const userId = created.user!.id;
+  try {
+    const { data: plan } = await admin.from("membership_plans").select("id").eq("kind", "recurring").limit(1).single();
+    const { error: membershipError } = await admin.from("memberships").insert({ gym_id: gym, user_id: userId, plan_id: plan!.id });
+    if (membershipError) throw membershipError;
+    const { data: owner } = await admin.from("profiles").select("full_name").eq("email", "owner@furyco.test").single();
+
+    await signIn(page, "owner@furyco.test");
+    await page.goto(`/admin/members/${userId}`);
+    await page.getByLabel("Freeze until").fill(addDays(await gymToday(), 14));
+    await page.getByRole("button", { name: "Freeze", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Unfreeze" })).toBeVisible();
+
+    await page.goto("/admin/activity?show=memberships");
+    const row = page.getByRole("row").filter({ hasText: name }).filter({ hasText: "active → frozen" }).first();
+    await expect(row.getByRole("cell").nth(1)).toHaveText(owner!.full_name);
+  } finally {
+    await admin.auth.admin.deleteUser(userId);
+  }
+});
+
+test("an athlete who signed the old waiver is asked to sign a new version, and the request goes once signed", async ({ page }) => {
+  const admin = db();
+  const gym = await gymId();
+  const owner = await asUser("owner@furyco.test");
+  const { data: before } = await admin.from("waivers").select("id, active").eq("gym_id", gym);
+  const { data: published, error } = await owner.rpc("publish_waiver", { p_gym: gym, p_title: "Revised agreement", p_body: "I understand the risks of training and accept them on my own behalf." });
+  if (error) throw error;
+  try {
+    await signIn(page, "alex@furyco.test");
+    await page.goto("/account");
+    await expect(page.getByText("Please sign: Revised agreement")).toBeVisible();
+    await page.getByLabel("I have read and agree to the above.").check();
+    await page.getByLabel("Type your full legal name to sign").fill("Alex Athlete");
+    await page.getByRole("button", { name: "Sign agreement" }).click();
+    await expect(page.getByText("Please sign:")).toHaveCount(0);
+    const { data: signature } = await admin.from("waiver_signatures").select("signed_name").eq("waiver_id", published.id).single();
+    expect(signature!.signed_name).toBe("Alex Athlete");
+  } finally {
+    await admin.from("waiver_signatures").delete().eq("waiver_id", published.id);
+    await admin.from("waivers").delete().eq("id", published.id);
+    for (const w of (before ?? []).filter((w) => w.active)) await admin.from("waivers").update({ active: true }).eq("id", w.id);
+  }
 });
 
 test.describe("deployment basics", () => {
