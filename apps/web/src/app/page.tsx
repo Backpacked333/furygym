@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LegalLinks } from "@/components/legal";
 import { LinkButton, TrackDot } from "@/components/ui";
 import { getViewer } from "@/lib/auth";
 import { money } from "@/lib/format";
@@ -49,6 +50,7 @@ export default async function Home() {
         ))}
         {plans?.length ? null : <p className="text-sm text-muted">Membership options will be listed here soon.</p>}
       </div>
+      <LegalLinks className="mt-16 border-t border-line pt-6" />
     </main>
   );
 }

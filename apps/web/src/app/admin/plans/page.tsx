@@ -3,7 +3,7 @@ import { Badge, Card, Empty, Field, Input, PageHeader, Select, Textarea } from "
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime, money, titleCase } from "@/lib/format";
 import { getStripe } from "@/lib/stripe/client";
-import { publishWaiver, saveGymSettings, savePlan } from "./actions";
+import { publishWaiver, saveGymSettings, saveLegal, savePlan } from "./actions";
 
 export const metadata = { title: "Plans & settings" };
 
@@ -47,10 +47,11 @@ function PlanFields({ plan }: { plan?: Plan }) {
 
 export default async function PlansPage() {
   const { supabase, gym } = await requireAdmin();
-  const [{ data: plans }, { data: waivers }, { count: signed }] = await Promise.all([
+  const [{ data: plans }, { data: waivers }, { count: signed }, { data: legal }] = await Promise.all([
     supabase.from("membership_plans").select("*").order("position").order("name"),
     supabase.from("waivers").select("*").order("version", { ascending: false }),
     supabase.from("waiver_signatures").select("id", { count: "exact", head: true }),
+    supabase.from("gym_legal").select("support_email, privacy_policy, terms").eq("gym_id", gym.id).maybeSingle(),
   ]);
   const current = waivers?.find((w) => w.active);
   const paymentsOn = Boolean(getStripe());
@@ -133,6 +134,18 @@ export default async function PlansPage() {
               <span>Show the “buy on the web” link for online programs in the iOS app<span className="block text-xs text-muted">US App Store only. Switch off if App Review objects; athletes can still buy on the website.</span></span>
             </label>
             <SubmitButton variant="secondary">Save settings</SubmitButton>
+          </ActionForm>
+        </Card>
+
+        <Card title="Privacy, terms & support">
+          <p className="mb-3 text-sm text-muted">
+            Shown on the public <a className="underline" href="/privacy" target="_blank">privacy</a>, <a className="underline" href="/terms" target="_blank">terms</a> and <a className="underline" href="/support" target="_blank">support</a> pages, which the app links to and the App Store requires. Paste the wording your lawyer approved; until then each page says it is being finalised.
+          </p>
+          <ActionForm action={saveLegal} resetOnSuccess={false} className="space-y-3">
+            <Field label="Support email"><Input name="support_email" type="email" defaultValue={legal?.support_email ?? ""} placeholder="help@yourgym.com" /></Field>
+            <Field label="Privacy policy"><Textarea name="privacy_policy" rows={8} defaultValue={legal?.privacy_policy ?? ""} /></Field>
+            <Field label="Terms of service"><Textarea name="terms" rows={8} defaultValue={legal?.terms ?? ""} /></Field>
+            <SubmitButton variant="secondary">Save pages</SubmitButton>
           </ActionForm>
         </Card>
       </div>

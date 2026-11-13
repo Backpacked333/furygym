@@ -6,6 +6,7 @@ struct TodayView: View {
     private struct Snapshot {
         var entries: [CalendarEntry]
         var nextClass: ClassSession?
+        var cancelled: [ClassSession]
         var enrollments: [Enrollment]
         var programCalendar: [CalendarEntry]
     }
@@ -31,6 +32,7 @@ struct TodayView: View {
                     ScreenHeader(eyebrow: DateText.longDay(model.today, in: model.timeZone), title: "Today")
 
                     attention
+                    ForEach(snapshot.cancelled) { cancelledNotice($0) }
                     if let next = snapshot.nextClass { bookingCard(next) }
                     workoutSection(snapshot.entries)
                     ForEach(snapshot.enrollments.filter { $0.status == .active }) { enrollment in
@@ -56,9 +58,13 @@ struct TodayView: View {
         async let classes = model.backend.classes(from: Date().addingTimeInterval(-1800), to: Date().addingTimeInterval(7 * 86_400))
         async let enrollments = model.backend.enrollments()
         async let programCalendar = model.backend.calendar(from: today.adding(days: -180), to: today.adding(days: 180))
-        let booked = try await classes.first { $0.myBookingStatus == .booked || $0.myBookingStatus == .waitlisted }
+        let upcoming = try await classes
+        let booked = upcoming.first { $0.myBookingStatus == .booked || $0.myBookingStatus == .waitlisted }
+        let cancelled = upcoming.filter { $0.cancelledOnAthlete(now: Date()) }
+        // The reminder set when they booked would otherwise still say "see you there".
+        for session in cancelled { Reminders.cancel(for: session.id) }
         return Snapshot(
-            entries: try await entries, nextClass: booked, enrollments: try await enrollments,
+            entries: try await entries, nextClass: booked, cancelled: cancelled, enrollments: try await enrollments,
             programCalendar: (try? await programCalendar)?.filter { $0.source == .program } ?? []
         )
     }
@@ -78,6 +84,17 @@ struct TodayView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// The gym cancelled a class the athlete had a place in. Stays until the class would have finished.
+    private func cancelledNotice(_ session: ClassSession) -> some View {
+        let day = DateText.relativeDay(DayDate(session.startsAt, in: model.timeZone), today: model.today, in: model.timeZone)
+        return Button { model.tab = .classes } label: {
+            notice(icon: "calendar.badge.exclamationmark", title: "\(session.title) was cancelled",
+                   detail: "\(day) at \(DateText.time(session.startsAt, in: model.timeZone)). Your place was released and any class credit returned. Tap to book another class.")
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("class-cancelled-notice")
     }
 
     private func notice(icon: String, title: String, detail: String) -> some View {

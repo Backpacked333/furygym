@@ -24,8 +24,8 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Receipts | Stripe | Stripe emails receipts once enabled in the Stripe dashboard |
 | Taxes | Built, off by default | Set `STRIPE_AUTOMATIC_TAX=true` after configuring Stripe Tax |
 | Payout reconciliation | Built | Payouts and per-payment fees recorded from Stripe |
-| Notifications | Partial | Local class reminders on the phone. No email/SMS/push from the server yet |
-| Attendance milestone | Partial | The app counts check-ins toward a reward set in the console (Plans & settings; default every 20 visits). Handing the reward over is manual |
+| Notifications | Partial | Local class reminders on the phone. When the gym cancels a class, each booked athlete sees a notice on their Today screen and staff get the list with an "Email all" link that opens their own email. No email/SMS/push is sent by the server |
+| Attendance milestone | Partial | The app counts check-ins toward a reward set in the console (Plans & settings; default every 20 visits). The dashboard lists who has earned it until staff mark it given; handing it over is manual |
 | Referrals | Not built | |
 
 ### B. Coach programming and facility display
