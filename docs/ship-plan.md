@@ -16,7 +16,7 @@ is the plan around it.
 | Email | Sign-up confirmation and password reset work against a local mail catcher. No real email provider is connected. |
 | iOS app | Runs in the simulator. Never installed on a real phone, never uploaded to TestFlight. |
 | Hardware | Not tested on a real TV, a handheld QR scanner, or the gym's network. |
-| Legal text | The waiver is a placeholder. There is no privacy policy, terms page or support contact. |
+| Legal text | The waiver is a placeholder. The privacy, terms and support pages exist (`/privacy`, `/terms`, `/support`) but say the wording is being finalised until the owner pastes approved text into Plans & settings. |
 
 Nothing in this table can be called production-ready until the acceptance tests in section 6 pass
 on the real deployment.
@@ -43,7 +43,7 @@ Things the client should know before signing off:
 
 - All TVs show the same content.
 - Attendance and bookings are this app's own. Nothing is read from or written to Wodify.
-- The exercise library and class schedule start empty; staff enter them (section 5, step 5).
+- The exercise library and class schedule start empty. One button on the Exercises page adds a starter library of 54 common movements; staff enter the schedule (section 5, step 5). The owner's dashboard shows a setup checklist until the required steps are done.
 - Emails to members come from Supabase (confirmation, password reset) and Stripe (receipts, failed-payment notices). The app sends no other email.
 
 ## 3. What I need from you (Backpacked)
@@ -81,7 +81,7 @@ Things the client should know before signing off:
 | 6 | Whether sales tax is collected | Off |
 | 7 | Whether the app shows a link to buy programs on the website | On, US App Store only. Apple may object; it can be switched off in settings without a new build. |
 | 8 | Wodify: keep it for billing and bookings during a pilot, or move everything | Not decided. Running both for the same job means staff keep two systems in step by hand. |
-| 9 | Privacy policy, terms, and a support email or page | Required by Apple before the app can be offered outside the internal test group. I add the pages once the text exists. |
+| 9 | Privacy policy, terms, and a support email or page | Required by Apple before the app can be offered outside the internal test group. The pages are built; the owner pastes the text into Plans & settings. |
 
 ### Content and equipment
 

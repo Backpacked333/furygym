@@ -215,7 +215,7 @@ test.describe("gym screen reliability", () => {
   });
 
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }]) {
-    test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it says so`, async ({ page }) => {
+    test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it shows one workout at a time`, async ({ page }) => {
       const today = await gymToday();
       const title = `E2E Long Day ${Date.now()}`;
       const { data: track } = await db().from("tracks").select("id, gym_id").eq("slug", "strength").single();
@@ -263,6 +263,21 @@ test.describe("gym screen reliability", () => {
         await expect(page.getByTestId("display-turn").filter({ visible: true })).toHaveText(/^[123] of 3$/);
         expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
         await page.screenshot({ path: `test-results/display-turns-${viewport.width}.png` });
+        if (viewport.width === 1920) {
+          // the next workout takes its turn without anyone touching the screen
+          test.setTimeout(120_000);
+          const onScreen = () => workouts.filter({ visible: true }).getByRole("heading").first().textContent();
+          const first = await onScreen();
+          await expect.poll(onScreen, { timeout: 45_000 }).not.toBe(first);
+          await expect(workouts.filter({ visible: true })).toHaveCount(1);
+          expect(await overflow()).toBeLessThanOrEqual(1);
+        }
+
+        // Off blanks the screen, banner included
+        await state({ mode: "off", message: "Bring a friend Friday — guests train free" });
+        await page.goto("/display/demo-display-token");
+        await expect(page.getByTestId("display-workout")).toHaveCount(0);
+        await expect(page.getByText("Bring a friend Friday")).toHaveCount(0);
       } finally {
         await state({ mode: "auto", workout_id: null, show_coach_notes: false, message: null });
         await db().from("workouts").delete().eq("id", workout!.id);
