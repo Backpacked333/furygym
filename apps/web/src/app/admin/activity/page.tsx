@@ -75,7 +75,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/admin/a
               return (
                 <tr key={e.id}>
                   <Td className="whitespace-nowrap text-muted">{formatDateTime(e.created_at, gym.timezone)}</Td>
-                  <Td>{e.actor_id ? (names.get(e.actor_id) ?? "Deleted account") : <span className="text-muted">System (billing or schedule)</span>}</Td>
+                  <Td>{e.actor_id ? (names.get(e.actor_id) ?? "Deleted account") : <span className="text-muted">System</span>}</Td>
                   <Td className="whitespace-nowrap">{VERBS[e.action] ?? titleCase(e.action)} · {ENTITIES[e.entity] ?? titleCase(e.entity)}</Td>
                   <Td>{who ? <Link href={`/admin/members/${who}`} className="hover:underline">{names.get(who) ?? "Deleted account"}</Link> : <span className="text-muted">—</span>}</Td>
                   <Td className="text-[13px] text-muted">{summarise(e.action, e.details) || "—"}</Td>
