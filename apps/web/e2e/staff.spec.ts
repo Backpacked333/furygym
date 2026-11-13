@@ -39,6 +39,13 @@ test.describe("coach publishes a workout", () => {
     await page.goto(`/admin/programming/workouts/new?date=${today}`, { waitUntil: "networkidle" });
     await page.getByLabel("Title").first().fill(laterTitle);
     await page.getByLabel("Track").selectOption({ label: "Strength" });
+    // a workout with no blocks would put a bare title on the display, so it cannot be published
+    await page.getByText("Publish now").click();
+    await page.getByRole("button", { name: "Save workout" }).click();
+    await expect(page.getByText("Add at least one block before publishing. Save it as a draft until then.")).toBeVisible();
+    expect((await db().from("workouts").select("id").eq("title", laterTitle)).data).toHaveLength(0);
+    await page.getByLabel("Search exercises").fill("dead");
+    await page.getByRole("button", { name: /Deadlift/ }).click();
     await page.getByText("Schedule", { exact: true }).click();
     await page.getByLabel("Publish date").fill(addDays(today, 1));
     await page.getByLabel("Publish time").fill("18:00");
