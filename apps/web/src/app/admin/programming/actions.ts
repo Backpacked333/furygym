@@ -49,6 +49,7 @@ export async function saveWorkout(_: ActionState, form: FormData): Promise<Actio
     }
   }
   if (input.is_template && status === "published") return fail("Templates stay as drafts. Create a workout from the template to publish it.");
+  if (status === "published" && input.items.length === 0) return fail("Add at least one block before publishing. Save it as a draft until then.");
 
   const row = {
     gym_id: gym.id,

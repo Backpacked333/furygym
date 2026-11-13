@@ -47,6 +47,7 @@ export default async function Home() {
             <p className="mt-3 text-sm font-semibold">{money(p.price_cents, p.currency)}{p.billing_interval ? ` / ${p.billing_interval}` : ""}</p>
           </div>
         ))}
+        {plans?.length ? null : <p className="text-sm text-muted">Membership options will be listed here soon.</p>}
       </div>
     </main>
   );

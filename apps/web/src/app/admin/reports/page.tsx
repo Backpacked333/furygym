@@ -24,16 +24,22 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   const start = zonedToUtc(from, "00:00", gym.timezone).toISOString();
   const end = zonedToUtc(addDays(to, 1), "00:00", gym.timezone).toISOString();
 
-  const [revenue, overview, { data: payments }, { data: payouts }] = await Promise.all([
+  const LIST = 200;
+  let listQuery = supabase
+    .from("payments")
+    .select("id, user_id, kind, description, amount_cents, tax_cents, fee_cents, refunded_cents, currency, status, failure_reason, paid_at, created_at, profiles(full_name)", { count: "exact" })
+    .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`);
+  // Filtering in the query, so a refund or failure older than the newest rows is still listed.
+  if (show === "refunds") listQuery = listQuery.gt("refunded_cents", 0);
+  if (show === "failed") listQuery = listQuery.eq("status", "failed");
+
+  const inPeriod = `and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`;
+  const [revenue, overview, { data: payments, count: matching }, { data: payouts }, { count: refunded }] = await Promise.all([
     supabase.rpc("report_revenue", { p_gym: gym.id, p_from: from, p_to: to }),
     supabase.rpc("report_overview", { p_gym: gym.id, p_from: from, p_to: to }),
-    supabase
-      .from("payments")
-      .select("id, user_id, kind, description, amount_cents, tax_cents, fee_cents, refunded_cents, currency, status, failure_reason, paid_at, created_at, profiles(full_name)")
-      .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
-      .order("created_at", { ascending: false })
-      .limit(200),
+    listQuery.order("created_at", { ascending: false }).limit(LIST),
     supabase.from("payouts").select("*").order("arrival_date", { ascending: false }).limit(6),
+    supabase.from("payments").select("id", { count: "exact", head: true }).or(inPeriod).gt("refunded_cents", 0),
   ]);
 
   const rows = revenue.data ?? [];
@@ -42,10 +48,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
     rows.filter((r) => !stream || streamOf(r.kind) === stream).reduce((n, r) => n + Number(r[key]), 0);
   const gross = sum("gross_cents");
   const streams = Object.keys(STREAMS).filter((s) => sum("payments", s) > 0);
-  const refundCount = rows.reduce((n, r) => n + (Number(r.refunded_cents) > 0 ? 1 : 0), 0);
+  const refundCount = refunded ?? 0;
   const feeRate = gross > 0 ? ((sum("fee_cents") / (gross + sum("tax_cents"))) * 100).toFixed(1) : null;
 
-  const listed = (payments ?? []).filter((p) => (show === "refunds" ? p.refunded_cents > 0 : show === "failed" ? p.status === "failed" : true));
+  const listed = payments ?? [];
+  const unlisted = Math.max(0, (matching ?? 0) - listed.length);
   const range = `from=${from}&to=${to}`;
   const exportHref = (type: string) => `/admin/reports/export?type=${type}&${range}`;
   const day = (iso: string | null) => (iso ? formatDate(dateInZone(new Date(iso), gym.timezone), { month: "short", day: "numeric" }) : "—");
@@ -70,7 +77,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="Gross sales" value={money(gross)} hint="Before tax, fees and refunds" />
         <Stat label="Processing fees" value={`−${money(sum("fee_cents"))}`} hint={feeRate ? `${feeRate}% effective` : undefined} />
-        <Stat label="Refunds" value={`−${money(sum("refunded_cents"))}`} hint={`${refundCount} ${refundCount === 1 ? "line" : "lines"} with refunds`} />
+        <Stat label="Refunds" value={`−${money(sum("refunded_cents"))}`} hint={<span data-testid="refund-count">{refundCount} refunded {refundCount === 1 ? "payment" : "payments"}</span>} />
         <Stat label="Tax collected" value={money(sum("tax_cents"))} hint="Liability · not revenue" />
         <Stat label="Net to bank" value={money(sum("net_cents"))} tone="good" hint={`Payouts received ${money(Number(stats.payouts_cents ?? 0))}`} />
       </div>
@@ -147,7 +154,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
                 const failed = p.status === "failed" || p.status === "pending";
                 const net = failed ? 0 : p.amount_cents - p.fee_cents - p.refunded_cents;
                 return (
-                  <tr key={p.id} className={failed ? "text-muted" : undefined}>
+                  <tr key={p.id} data-testid="transaction-row" className={failed ? "text-muted" : undefined}>
                     <Td className="whitespace-nowrap">{day(p.paid_at ?? p.created_at)}</Td>
                     <Td>{p.user_id ? <Link href={`/admin/members/${p.user_id}`} className="hover:underline">{p.profiles?.full_name ?? "Member"}</Link> : "Deleted account"}</Td>
                     <Td>
@@ -166,6 +173,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
           ) : (
             <Empty>No transactions match.</Empty>
           )}
+          {unlisted ? (
+            <p className="mt-3 text-[13px] text-muted" data-testid="transactions-more">
+              Showing the newest {listed.length} of {listed.length + unlisted}. <Link href={`${exportHref("payments")}${show === "all" ? "" : `&show=${show}`}`} className="underline">Export CSV</Link> for the full list{show === "all" ? "" : show === "refunds" ? " of refunds" : " of failed payments"}.
+            </p>
+          ) : null}
         </Card>
       </div>
     </>

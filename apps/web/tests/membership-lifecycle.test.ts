@@ -3,10 +3,11 @@ import { addDays, gymId, makeMember, newAthlete, newSession, service, signIn } f
 
 let viewer: Awaited<ReturnType<typeof newAthlete>>;
 let owner: Awaited<ReturnType<typeof signIn>>;
+let ownerId: string;
 let gym: string;
 let today: string;
 vi.mock("@/lib/api-auth", () => ({ authenticate: async () => ({ user: { id: viewer.id }, supabase: viewer.client }) }));
-vi.mock("@/lib/auth", () => ({ requireAdmin: async () => ({ supabase: owner, gym: { id: gym } }) }));
+vi.mock("@/lib/auth", () => ({ requireAdmin: async () => ({ supabase: owner, user: { id: ownerId }, gym: { id: gym } }) }));
 vi.mock("@/lib/supabase/server", () => ({ createAdminClient: () => service() }));
 vi.mock("@/lib/stripe/client", () => ({ getStripe: () => null, PAYMENTS_OFF: "Payments are off" }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -17,6 +18,7 @@ import { updateMembership } from "@/app/admin/members/actions";
 beforeAll(async () => {
   gym = await gymId();
   owner = await signIn("owner@furyco.test");
+  ownerId = (await owner.auth.getUser()).data.user!.id;
   today = (await service().rpc("gym_today", { p_gym: gym })).data;
 });
 

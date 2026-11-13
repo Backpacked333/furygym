@@ -44,11 +44,7 @@ export async function publishWaiver(_: ActionState, form: FormData): Promise<Act
   const title = text(form, "title");
   const body = text(form, "body");
   if (!title || body.length < 20) return fail("Enter a title and the full agreement text.");
-  const { data: latest } = await supabase.from("waivers").select("version").eq("gym_id", gym.id).order("version", { ascending: false }).limit(1).maybeSingle();
-
-  const { error: retire } = await supabase.from("waivers").update({ active: false }).eq("gym_id", gym.id).eq("active", true);
-  if (retire) return fail(retire);
-  const { error } = await supabase.from("waivers").insert({ gym_id: gym.id, title, body, version: (latest?.version ?? 0) + 1 });
+  const { error } = await supabase.rpc("publish_waiver", { p_gym: gym.id, p_title: title, p_body: body });
   if (error) return fail(error);
   revalidatePath("/admin/plans");
   return { ok: "New version published. Members will be asked to sign it before their next booking." };
