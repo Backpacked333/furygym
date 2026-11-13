@@ -77,13 +77,14 @@ function Group({ title, more, children }: { title: string; more?: { count: numbe
 export async function NeedsAttention({ supabase, gym }: Pick<Viewer, "supabase" | "gym">) {
   const today = todayInZone(gym.timezone);
   const now = new Date();
-  const [pastDue, thawing, waitlists, quiet, rewards] = await Promise.all([
+  const [pastDue, thawing, waiting, quiet, rewards] = await Promise.all([
     supabase.from("memberships").select("id, user_id, profiles!memberships_user_id_fkey(full_name, email), membership_plans(name)").eq("status", "past_due").order("updated_at"),
     supabase.from("memberships").select("id, user_id, frozen_until, profiles!memberships_user_id_fkey(full_name, email)").eq("status", "frozen").gte("frozen_until", today).lte("frozen_until", addDays(today, 7)).order("frozen_until"),
-    supabase.from("class_session_overview").select("id, title, starts_at, waitlist_count, capacity").eq("status", "scheduled").gte("starts_at", now.toISOString()).lt("starts_at", new Date(now.getTime() + 7 * 86_400_000).toISOString()).gt("waitlist_count", 0).order("starts_at"),
+    supabase.from("class_session_overview").select("id, title, starts_at, waitlist_count, booked_count, capacity").eq("status", "scheduled").gte("starts_at", now.toISOString()).lt("starts_at", new Date(now.getTime() + 7 * 86_400_000).toISOString()).gt("waitlist_count", 0).order("starts_at"),
     supabase.rpc("quiet_members", { p_gym: gym.id, p_days: QUIET_DAYS }),
     gym.milestone_reward ? supabase.rpc("milestones_due", { p_gym: gym.id }) : Promise.resolve({ data: [] as never[] }),
   ]);
+  const waitlists = { data: (waiting.data ?? []).filter((s) => (s.booked_count ?? 0) >= (s.capacity ?? 0)) };
   const name = (p: { full_name: string | null; email: string | null } | null) => p?.full_name || p?.email || "(no name)";
   const groups = [pastDue.data, thawing.data, waitlists.data, quiet.data, rewards.data].filter((g) => g?.length).length;
 
