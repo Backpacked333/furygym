@@ -48,6 +48,13 @@ test("a new gym can be set up from an empty database", async ({ page, browser, r
   }
   await page.goto("/admin/members");
   await expect(page.getByText("1 person at Fury Co. Athletics")).toBeVisible();
+  for (const path of ["/privacy", "/terms", "/support"]) expect((await request.get(path)).status(), path).toBe(200);
+
+  // --- the owner's dashboard says what is left to do ------------------------------------------------
+  const checklist = page.getByTestId("setup-checklist");
+  await page.goto("/admin");
+  await expect(page.getByText("0 of 6 done")).toBeVisible();
+  await expect(checklist.locator('li[data-done="false"]')).toHaveCount(7);
 
   // --- waiver and first plan ----------------------------------------------------------------------
   await page.goto("/admin/plans", { waitUntil: "networkidle" });
@@ -64,12 +71,16 @@ test("a new gym can be set up from an empty database", async ({ page, browser, r
   const { data: plan } = await admin.from("membership_plans").select("id, price_cents, kind, active").eq("name", "Unlimited Monthly").single();
   expect(plan).toMatchObject({ price_cents: 15000, kind: "recurring", active: true });
 
-  // --- exercise, class and a published workout ------------------------------------------------------
+  await page.goto("/admin");
+  await expect(page.getByText("2 of 6 done")).toBeVisible();
+  await expect(checklist.locator('li[data-done="true"]')).toContainText(["Publish your waiver", "Add a membership plan"]);
+
+  // --- starter exercise library, class and a published workout --------------------------------------
   await page.goto("/admin/exercises", { waitUntil: "networkidle" });
-  const exerciseForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add exercise", exact: true }) });
-  await exerciseForm.getByLabel("Name").fill("Back Squat");
-  await exerciseForm.getByRole("button", { name: "Add exercise", exact: true }).click();
-  await expect(page.getByText("1 exercise", { exact: false }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Add the starter library" }).click();
+  await expect(page.getByRole("heading", { name: "Starter library" })).toHaveCount(0);
+  const { count: movements } = await admin.from("exercises").select("id", { count: "exact", head: true });
+  expect(movements).toBe(54);
 
   const { data: gym } = await admin.from("gyms").select("id").eq("is_default", true).single();
   const { data: today } = await admin.rpc("gym_today", { p_gym: gym!.id });
@@ -100,6 +111,10 @@ test("a new gym can be set up from an empty database", async ({ page, browser, r
   await expect(screen.getByRole("heading", { name: "First Session" })).toBeVisible();
   await expect(screen.getByText("5 x 5")).toBeVisible();
   await tv.close();
+  // every required step is done, so the checklist is gone (Stripe is optional)
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
+  await expect(checklist).toHaveCount(0);
 
   // --- a new athlete joins, signs, and gets a membership by hand ------------------------------------
   const visitor = await browser.newContext();
