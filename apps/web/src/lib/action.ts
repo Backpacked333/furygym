@@ -14,6 +14,7 @@ const friendly: Record<string, string> = {
   forbidden: "You do not have permission to do that.",
   invalid_range: "Choose a range of up to 180 days.",
   program_already_started: "The program has already started.",
+  waiver_text_required: "Enter a title and the full agreement text.",
 };
 
 /** Turns a database or Stripe error into a message a staff member can act on. */

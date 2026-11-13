@@ -45,6 +45,9 @@ the order they depend on each other.
 5. Verify signup confirmation and password recovery using the actual delivered emails, including
    a second browser, invalid/used links, and sign-in with the new password. An anonymous request
    to `/admin` must redirect to sign-in; an athlete must never see staff/financial pages.
+6. Open `https://YOUR_DOMAIN/api/health`. It must answer `{"status":"ok","database":"ok",...}`;
+   `"payments":"off"` until both Stripe secrets are set. Point an uptime monitor at it: it
+   answers 503 when the database cannot be reached or a required variable is missing.
 
 ## 3. Payments (Stripe)
 

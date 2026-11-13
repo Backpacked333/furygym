@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toCsv } from "@/lib/csv";
 import { classTimer, clockOffset, screenStatus } from "@/lib/display";
 import { addDays, dateInZone, startOfWeek, zonedToUtc } from "@/lib/format";
+import { everyRow } from "@/lib/paging";
 import { buildCheckoutSession, validStartDate } from "@/lib/stripe/checkout";
 import { publishState, workoutSchema } from "@/lib/workouts";
 
@@ -142,5 +143,38 @@ describe("gym display", () => {
     expect(screenStatus(null, now)).toBe("never");
     expect(screenStatus("2026-11-12T11:59:20Z", now)).toBe("online");
     expect(screenStatus("2026-11-12T11:58:29Z", now)).toBe("offline");
+  });
+});
+
+describe("reading every row of a capped query", () => {
+  const source = (total: number) => {
+    const calls: [number, number][] = [];
+    const page = async (from: number, to: number) => {
+      calls.push([from, to]);
+      return { data: Array.from({ length: Math.max(0, Math.min(to + 1, total) - from) }, (_, i) => from + i), error: null };
+    };
+    return { calls, page };
+  };
+
+  it("keeps reading past the first page, in order, with no gap or repeat", async () => {
+    const { calls, page } = source(2500);
+    const rows = await everyRow(page);
+    expect(rows).toHaveLength(2500);
+    expect(rows).toEqual(Array.from({ length: 2500 }, (_, i) => i));
+    expect(calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]]);
+  });
+
+  it("asks once more after an exactly full page, and stops on a short one", async () => {
+    expect((await everyRow(source(1000).page)).length).toBe(1000);
+    expect(await everyRow(source(0).page)).toEqual([]);
+    const { calls, page } = source(1000);
+    await everyRow(page);
+    expect(calls).toEqual([[0, 999], [1000, 1999]]);
+  });
+
+  it("fails instead of returning the rows it managed to read", async () => {
+    let n = 0;
+    const page = async () => (n++ === 0 ? { data: Array.from({ length: 1000 }, (_, i) => i), error: null } : { data: null, error: { message: "timeout" } });
+    await expect(everyRow(page)).rejects.toThrow("timeout");
   });
 });

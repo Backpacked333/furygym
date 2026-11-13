@@ -59,7 +59,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
       />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <Stat label="Workouts logged" value={logCount ?? logs?.length ?? 0} tone="accent" hint="Most recent sessions shown below" />
+        <Stat label="Workouts logged" value={<span data-testid="workouts-logged">{logCount ?? logs?.length ?? 0}</span>} tone="accent" hint="Most recent sessions shown below" />
         <Stat
           label={records?.[0] ? `${records[0].exercise_name}${records[0].reps ? ` ${records[0].reps}RM` : ""}` : "Personal records"}
           value={records?.[0] ? `${records[0].load} ${records[0].load_unit}` : "—"}

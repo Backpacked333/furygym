@@ -2,21 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { dollars, toCsv } from "@/lib/csv";
 import { addDays, dateInZone, zonedToUtc } from "@/lib/format";
+import { everyRow } from "@/lib/paging";
 
 const isDate = (v: string | null): v is string => Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
-
-const PAGE = 1000;
-
-/** The API returns at most 1,000 rows a request, so an export reads every page instead of stopping at the first. */
-async function everyRow<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await page(from, from + PAGE - 1);
-    if (error) throw new Error(error.message);
-    rows.push(...(data ?? []));
-    if ((data?.length ?? 0) < PAGE) return rows;
-  }
-}
 
 export async function GET(request: NextRequest) {
   const viewer = await getViewer();

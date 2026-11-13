@@ -72,7 +72,9 @@ hand on a device or simulator in this build — see "Not yet verified" below.
 |---|---|---|
 | Revenue by stream; gross, tax, fees, refunds, net | Built | Facility and digital today; licensing, merchandise and events have no sales yet |
 | Members, churn, attendance, failed payments | Built | |
-| CSV export | Built | Payments, memberships, attendance |
+| CSV export | Built | Payments, memberships, attendance. Exports read every row; the memberships export is all memberships, not a date range |
+| Transaction list | Built | Newest 200 for the period, with Refunds and Failed filters applied before the cut; says when it is cut |
+| Change log (audit) | Built | Admins and owners: who changed a role, membership, enrolment, plan, program or the display, and the before and after |
 | Accounting integration | Not built | Export covers the pilot |
 
 ### Not in this build
@@ -131,9 +133,9 @@ and leaderboard display modes, and NFC check-in.
 
 Said plainly, so nothing here is mistaken for done:
 
-- **The iOS app has not been run by a person.** It builds and passes its tests in CI; nobody has
-  tapped through it, and every screen was rebuilt for the redesign. Expect layout and flow fixes in
-  the first TestFlight round.
+- **The iOS app has only been run in the simulator.** It was walked through there with separate
+  owner, coach and athlete accounts, and the defects found were fixed. It has not been run on a
+  physical phone or through TestFlight; expect layout and flow fixes in the first TestFlight round.
 - **The check-in scanner has not read a real phone screen.** The code maths is tested on both
   sides (app and database agree); a camera or handheld scanner reading the app's QR code off a
   phone is still to try.

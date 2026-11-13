@@ -152,7 +152,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
                 const failed = p.status === "failed" || p.status === "pending";
                 const net = failed ? 0 : p.amount_cents - p.fee_cents - p.refunded_cents;
                 return (
-                  <tr key={p.id} className={failed ? "text-muted" : undefined}>
+                  <tr key={p.id} data-testid="transaction-row" className={failed ? "text-muted" : undefined}>
                     <Td className="whitespace-nowrap">{day(p.paid_at ?? p.created_at)}</Td>
                     <Td>{p.user_id ? <Link href={`/admin/members/${p.user_id}`} className="hover:underline">{p.profiles?.full_name ?? "Member"}</Link> : "Deleted account"}</Td>
                     <Td>
