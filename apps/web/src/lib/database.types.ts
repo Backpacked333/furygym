@@ -327,14 +327,14 @@ isOneToOne: false
                   ]
                 },"gym_secrets": {
                   Row: {
-                    "display_token": string,"gym_id": string,"updated_at": string
+                    "display_seen_at": string | null,"display_token": string,"gym_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "display_token"?: string,"gym_id": string,"updated_at"?: string
+                    "display_seen_at"?: string | null,"display_token"?: string,"gym_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "display_token"?: string,"gym_id"?: string,"updated_at"?: string
+                    "display_seen_at"?: string | null,"display_token"?: string,"gym_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -971,6 +971,9 @@ isOneToOne: false
                            },
 "default_gym_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"display_ping":
+{ Args: { "p_token": string }; Returns: undefined
                            },
 "freeze_membership":
 { Args: { "p_membership": string,"p_until": string,"p_user": string }; Returns: Json

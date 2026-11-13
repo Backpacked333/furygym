@@ -37,7 +37,7 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Reusable templates | Built | |
 | Training blocks / program calendars | Built | Week × day grid for online programs |
 | Scheduled publishing | Built | Draft, publish now, or publish at a set gym time |
-| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off. Shows the next class, a countdown and how many are checked in; names are opt-in |
+| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off. Shows the current or next class, a countdown and how many are checked in; names are opt-in. Staff see whether a screen is connected. Setup and gym acceptance test: [tv-display.md](tv-display.md) |
 | Strength, Engine and Selection tracks | Built | More tracks are rows, not code |
 
 ### C. Athlete profile and training experience (iOS)
