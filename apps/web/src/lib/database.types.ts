@@ -327,14 +327,14 @@ isOneToOne: false
                   ]
                 },"gym_secrets": {
                   Row: {
-                    "display_token": string,"gym_id": string,"updated_at": string
+                    "display_seen_at": string | null,"display_token": string,"gym_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "display_token"?: string,"gym_id": string,"updated_at"?: string
+                    "display_seen_at"?: string | null,"display_token"?: string,"gym_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "display_token"?: string,"gym_id"?: string,"updated_at"?: string
+                    "display_seen_at"?: string | null,"display_token"?: string,"gym_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -972,6 +972,9 @@ isOneToOne: false
 "default_gym_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"display_ping":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
 "freeze_membership":
 { Args: { "p_membership": string,"p_until": string,"p_user": string }; Returns: Json
                            },
@@ -1010,6 +1013,23 @@ isOneToOne: false
 "my_checkin_secret":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"publish_waiver":
+{ Args: { "p_body": string,"p_gym": string,"p_title": string }; Returns: {
+              "active": boolean,
+"body": string,
+"created_at": string,
+"gym_id": string,
+"id": string,
+"required": boolean,
+"title": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "waivers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "report_overview":
 { Args: { "p_from": string,"p_gym": string,"p_to": string }; Returns: Json
                            },

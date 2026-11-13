@@ -125,7 +125,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
               })}
             </ul>
           ) : (
-            <Empty>Every recent log has feedback.</Empty>
+            <Empty>{logs.data?.length ? "Every recent log has feedback." : "No workouts logged in the last 7 days."}</Empty>
           )}
         </Card>
 

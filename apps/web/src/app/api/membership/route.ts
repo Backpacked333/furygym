@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return refuse("invalid_request", 400, "That request could not be read.");
   const input = parsed.data;
 
-  const admin = createAdminClient();
+  const admin = createAdminClient(auth.user.id);
   const { data: membership } = await admin.from("memberships").select("*, membership_plans(kind)").eq("id", input.membership_id).eq("user_id", auth.user.id).maybeSingle();
   if (!membership) return refuse("not_found", 404, "Membership not found.");
   if (membership.membership_plans?.kind !== "recurring" && input.action !== "cancel") {

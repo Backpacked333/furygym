@@ -37,7 +37,7 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Reusable templates | Built | |
 | Training blocks / program calendars | Built | Week × day grid for online programs |
 | Scheduled publishing | Built | Draft, publish now, or publish at a set gym time |
-| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off. Shows the next class, a countdown and how many are checked in; names are opt-in |
+| TV / kiosk display with staff control | Built | Auto (today), one track, pinned workout, message banner, or off. Shows the current or next class, a countdown and how many are checked in; names are opt-in. Staff see whether a screen is connected. Setup and gym acceptance test: [tv-display.md](tv-display.md) |
 | Strength, Engine and Selection tracks | Built | More tracks are rows, not code |
 
 ### C. Athlete profile and training experience (iOS)
@@ -54,8 +54,8 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Add a booked class to the phone calendar | Built | Write-only calendar permission, asked on first use |
 | In-app account deletion | Built | Required by the App Store; stops billing first |
 
-The iOS screens compile and their unit tests run in CI on macOS. They have **not** been used by
-hand on a device or simulator in this build — see "Not yet verified" below.
+The iOS screens compile and their unit tests run in CI on macOS. They have been used by hand in
+the simulator, not on a physical phone — see "Not yet verified" below.
 
 ### D. On-demand online programs
 
@@ -72,7 +72,9 @@ hand on a device or simulator in this build — see "Not yet verified" below.
 |---|---|---|
 | Revenue by stream; gross, tax, fees, refunds, net | Built | Facility and digital today; licensing, merchandise and events have no sales yet |
 | Members, churn, attendance, failed payments | Built | |
-| CSV export | Built | Payments, memberships, attendance |
+| CSV export | Built | Payments, memberships, attendance. Exports read every row; the memberships export is all memberships, not a date range |
+| Transaction list | Built | Newest 200 for the period, with Refunds and Failed filters applied before the cut; says when it is cut |
+| Change log (audit) | Built | Admins and owners: who changed a role, membership, enrolment, plan, program or the display, and the before and after |
 | Accounting integration | Not built | Export covers the pilot |
 
 ### Not in this build
@@ -131,9 +133,9 @@ and leaderboard display modes, and NFC check-in.
 
 Said plainly, so nothing here is mistaken for done:
 
-- **The iOS app has not been run by a person.** It builds and passes its tests in CI; nobody has
-  tapped through it, and every screen was rebuilt for the redesign. Expect layout and flow fixes in
-  the first TestFlight round.
+- **The iOS app has only been run in the simulator.** It was walked through there with separate
+  owner, coach and athlete accounts, and the defects found were fixed. It has not been run on a
+  physical phone or through TestFlight; expect layout and flow fixes in the first TestFlight round.
 - **The check-in scanner has not read a real phone screen.** The code maths is tested on both
   sides (app and database agree); a camera or handheld scanner reading the app's QR code off a
   phone is still to try.

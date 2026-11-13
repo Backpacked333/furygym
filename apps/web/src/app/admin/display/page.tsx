@@ -4,7 +4,7 @@ import { Badge, Card, Field, Input, LinkButton, PageHeader, Select } from "@/com
 import { requireStaff } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { addDays, formatDate, formatDateTime, todayInZone } from "@/lib/format";
-import type { DisplayPayload } from "@/lib/display";
+import { screenStatus, type DisplayPayload } from "@/lib/display";
 import { createPublicClient } from "@/lib/supabase/server";
 import { rotateDisplayToken, saveDisplay } from "./actions";
 
@@ -25,7 +25,7 @@ export default async function DisplayControlPage() {
   const today = todayInZone(gym.timezone);
   const [{ data: state }, { data: secret }, { data: tracks }, { data: workouts }] = await Promise.all([
     supabase.from("display_state").select("*").eq("gym_id", gym.id).single(),
-    supabase.from("gym_secrets").select("display_token").eq("gym_id", gym.id).single(),
+    supabase.from("gym_secrets").select("display_token, display_seen_at").eq("gym_id", gym.id).single(),
     supabase.from("tracks").select("id, name").eq("kind", "facility").eq("active", true).order("position"),
     supabase
       .from("workouts")
@@ -39,6 +39,8 @@ export default async function DisplayControlPage() {
   const path = secret ? `/display/${secret.display_token}` : null;
   const preview = secret ? ((await createPublicClient().rpc("get_display", { p_token: secret.display_token })).data as unknown as DisplayPayload | null) : null;
   const showing = preview?.workouts[0];
+  // Whether a TV is really running the link, which the chosen mode alone cannot tell staff.
+  const screen = screenStatus(secret?.display_seen_at, new Date().getTime());
 
   return (
     <>
@@ -56,15 +58,28 @@ export default async function DisplayControlPage() {
             <Badge tone={state?.mode === "off" ? "neutral" : "good"} dot>{state?.mode === "off" ? "Blank" : "On"}</Badge>
           </div>
 
+          <Card title="Screens">
+            <div className="flex items-center justify-between gap-3" data-testid="screen-status">
+              <p className="text-sm">
+                {screen === "online" ? "A screen is showing this display." : screen === "offline" ? "No screen is showing this display right now." : "No screen has opened the display link yet."}
+              </p>
+              <Badge tone={screen === "online" ? "good" : screen === "offline" ? "warn" : "neutral"} dot>{screen === "online" ? "Connected" : screen === "offline" ? "Not connected" : "Not set up"}</Badge>
+            </div>
+            <p className="mt-2 text-[13px] text-muted">
+              {secret?.display_seen_at ? `Last check-in from a screen: ${formatDateTime(secret.display_seen_at, gym.timezone)}. ` : ""}
+              Screens check in every 30 seconds while the link is open. Reload this page for the latest status.
+            </p>
+          </Card>
+
           <Card title="Display link">
             {path ? (
               <>
                 <p className="break-all rounded-2xl bg-raised px-3.5 py-2.5 font-mono text-xs" data-testid="display-url">{env.siteUrl}{path}</p>
                 <p className="mt-2 text-[13px] text-muted">Anyone with this link can see the display, so share it only with gym devices. It needs no login.</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <LinkButton href={path} target="_blank" variant="tinted"><Icon name="external" size={18} />Open full preview</LinkButton>
+                  <LinkButton href={`${path}?preview`} target="_blank" variant="tinted"><Icon name="external" size={18} />Open full preview</LinkButton>
                   {isAdmin ? (
-                    <ActionButton action={rotateDisplayToken} fields={{}} variant="danger" small={false} confirm="Create a new link? Screens using the current link will stop working until updated.">Replace link</ActionButton>
+                    <ActionButton action={rotateDisplayToken} fields={{}} variant="danger" small={false} confirm="Create a new link? Screens using the current link will go blank within 30 seconds and need the new link.">Replace link</ActionButton>
                   ) : null}
                 </div>
               </>
@@ -111,7 +126,7 @@ export default async function DisplayControlPage() {
                 </div>
               </fieldset>
               <div className="mt-3">
-                <Toggle name="show_checked_in" label="Show checked-in athletes" hint="First name and last initial, for the current class" on={state?.show_checked_in} />
+                <Toggle name="show_checked_in" label="Show checked-in athletes" hint="First name and last initial, for the current class. Only check-ins recorded in this app." on={state?.show_checked_in} />
                 <Toggle name="show_coach_notes" label="Show coach notes on screen" hint="Under each workout" on={state?.show_coach_notes} />
               </div>
               <div className="mt-3 space-y-3">

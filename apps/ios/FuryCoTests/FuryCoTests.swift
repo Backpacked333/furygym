@@ -1,4 +1,6 @@
+import Foundation
 import FuryCore
+import Supabase
 import XCTest
 @testable import FuryCo
 
@@ -36,5 +38,13 @@ final class FuryCoTests: XCTestCase {
         XCTAssertEqual(Backend.message(for: Backend.WebError(message: "Online payment is not switched on yet.")), "Online payment is not switched on yet.")
         XCTAssertEqual(Backend.message(for: LogValidationError(itemTitle: "Back Squat", message: "Load must be a number.")), "Back Squat: Load must be a number.")
         XCTAssertEqual(Backend.message(for: URLError(.notConnectedToInternet)), "No connection. Check your signal and try again.")
+    }
+
+    func testAFailedSignInSaysWhy() {
+        let unconfirmed = AuthError.api(message: "Email not confirmed", errorCode: .emailNotConfirmed, underlyingData: Data(), underlyingResponse: HTTPURLResponse())
+        XCTAssertEqual(Backend.signInMessage(for: unconfirmed), "Confirm your email first: open the link we sent when you signed up.")
+        let wrong = AuthError.api(message: "Invalid login credentials", errorCode: .invalidCredentials, underlyingData: Data(), underlyingResponse: HTTPURLResponse())
+        XCTAssertEqual(Backend.signInMessage(for: wrong), "That email and password do not match an account.")
+        XCTAssertEqual(Backend.signInMessage(for: URLError(.notConnectedToInternet)), "No connection. Check your signal and try again.")
     }
 }

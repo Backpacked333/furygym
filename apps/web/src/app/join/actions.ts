@@ -13,7 +13,7 @@ export async function signUp(_: ActionState, form: FormData): Promise<ActionStat
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
-  if (error) return fail(error.message);
+  if (error) return fail(error.code === "user_already_exists" ? "That email already has an account. Sign in instead." : error.message);
   if (!data.session) return { ok: "Check your email to confirm your address, then sign in." };
 
   const next = text(form, "next");

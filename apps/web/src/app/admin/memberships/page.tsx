@@ -4,6 +4,7 @@ import { Icon } from "@/components/icons";
 import { Avatar, Badge, Card, Empty, LinkButton, PageHeader, Segmented, Stat, Table, Td, type Tone } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, formatDate, formatDateTime, money, todayInZone } from "@/lib/format";
+import { getStripe } from "@/lib/stripe/client";
 import { updateMembership } from "../members/actions";
 
 export const metadata = { title: "Memberships" };
@@ -119,7 +120,11 @@ export default async function MembershipsPage({ searchParams }: PageProps<"/admi
           ) : (
             <Empty>No failed payments.</Empty>
           )}
-          <p className="mt-4 text-[13px] text-muted">Stripe retries failed card payments automatically and emails the member a link to update their card. Members keep booking access while it retries.</p>
+          <p className="mt-4 text-[13px] text-muted">
+            {getStripe()
+              ? "Stripe retries failed card payments automatically and emails the member a link to update their card. Members keep booking access while it retries."
+              : "Stripe is not connected, so no card payments are being taken. Failed payments will be listed here once it is."}
+          </p>
         </Card>
       </div>
     </>

@@ -24,12 +24,30 @@ struct Backend: Sendable {
 
     /// Runs a query and decodes the body with FuryCore's decoder (snake_case keys, Postgres dates).
     private func fetch<T: Decodable>(_ builder: PostgrestBuilder, as type: T.Type = T.self) async throws -> T {
-        let response: PostgrestResponse<Void> = try await builder.execute()
+        let response = try await execute(builder)
         return try JSONCoding.decoder().decode(T.self, from: response.data)
     }
 
     private func run(_ builder: PostgrestBuilder) async throws {
-        let _: PostgrestResponse<Void> = try await builder.execute()
+        _ = try await execute(builder)
+    }
+
+    private func execute(_ builder: PostgrestBuilder) async throws -> PostgrestResponse<Void> {
+        let userID = currentUserID
+        var retries = 0
+        while true {
+            try Task.checkCancellation()
+            guard currentUserID == userID else { throw CancellationError() }
+            do {
+                return try await builder.execute()
+            } catch let error as PostgrestError {
+                // Only a confirmed transaction rollback is safe to replay, never a network error.
+                guard error.code == "40P01", retries < 2 else { throw error }
+                let delay = 50 * (1 << retries) + Int.random(in: 0...50)
+                retries += 1
+                try await Task.sleep(for: .milliseconds(delay))
+            }
+        }
     }
 
     /// A sentence for the athlete, from whatever went wrong.
@@ -48,6 +66,18 @@ struct Backend: Sendable {
         }
         let text = error.localizedDescription
         return ServerMessage.isKnown(text) ? ServerMessage.friendly(text) : text
+    }
+
+    /// A sentence for a failed sign-in. Supabase reports an unconfirmed address only after the
+    /// password has matched, so saying so gives nothing away.
+    static func signInMessage(for error: Error) -> String {
+        if (error as? URLError) != nil {
+            return "No connection. Check your signal and try again."
+        }
+        if (error as? AuthError)?.errorCode == .emailNotConfirmed {
+            return "Confirm your email first: open the link we sent when you signed up."
+        }
+        return "That email and password do not match an account."
     }
 
     // MARK: Account

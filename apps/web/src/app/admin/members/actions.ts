@@ -44,7 +44,7 @@ export async function grantMembership(_: ActionState, form: FormData): Promise<A
 }
 
 export async function updateMembership(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase } = await requireAdmin();
+  const { supabase, user } = await requireAdmin();
   const id = text(form, "id");
   const op = text(form, "op");
   const { data: membership } = await supabase.from("memberships").select("*").eq("id", id).single();
@@ -80,7 +80,7 @@ export async function updateMembership(_: ActionState, form: FormData): Promise<
           pause_collection: { behavior: "void", ...(until ? { resumes_at: Math.floor(new Date(`${until}T12:00:00Z`).getTime() / 1000) } : {}) },
         });
       }
-      const { error } = await createAdminClient().rpc("freeze_membership", { p_user: membership.user_id, p_membership: id, p_until: until });
+      const { error } = await createAdminClient(user.id).rpc("freeze_membership", { p_user: membership.user_id, p_membership: id, p_until: until });
       if (error) return fail(subscriptionId ? "Billing was paused, but bookings could not be updated. Contact the gym before retrying." : error);
     } else if (op === "unfreeze") {
       if (subscriptionId) await stripe!.subscriptions.update(subscriptionId, { pause_collection: null });
