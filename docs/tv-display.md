@@ -37,8 +37,11 @@ All screens on the link show the same thing. Separate content per room is not su
   the previous day's workout. A screen that is restarted with no connection shows nothing.
 - **New link** makes the old link stop working: screens on it go blank within 30 seconds and say
   the link is no longer active. Use it if the link has been shared outside the gym.
-- A long workout is shrunk to fit, down to half size. If the day's workouts still do not fit, the
-  screen says so and the bottom is cut off: show one track, or pin one workout.
+- When the day's workouts do not fit on the screen together at full size, they take turns: one
+  workout at a time for 25 seconds each, with "1 of 3" beside the title. A single workout that is
+  too long on its own is shrunk to fit, down to half size; past that the screen says so and the
+  bottom is cut off, so shorten it or split it into two workouts.
+- **Off** blanks the screen completely, including the message banner.
 
 ## Acceptance test in the gym
 

@@ -1,8 +1,9 @@
-import { ActionForm, SubmitButton } from "@/components/forms";
+import { ActionButton, ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card, Empty, Field, Input, PageHeader, Textarea } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { METRICS, METRIC_LABELS, type Metric } from "@/lib/workouts";
-import { saveExercise } from "../programming/actions";
+import { STARTER_EXERCISES } from "@/lib/starter-exercises";
+import { addStarterExercises, saveExercise } from "../programming/actions";
 
 export const metadata = { title: "Exercises" };
 
@@ -67,15 +68,23 @@ export default async function ExercisesPage() {
               ))}
             </ul>
           ) : (
-            <Empty>No exercises yet.</Empty>
+            <Empty>No exercises yet. Add your own, or start from the starter library.</Empty>
           )}
         </Card>
+        <div className="space-y-4">
+        {(exercises?.length ?? 0) < 10 ? (
+          <Card title="Starter library">
+            <p className="mb-3 text-sm text-muted">{STARTER_EXERCISES.length} common strength, weightlifting, gymnastics and conditioning movements, each with the fields athletes usually record. Anything you already have is left alone.</p>
+            <ActionButton action={addStarterExercises} fields={{}} variant="primary" small={false}>Add the starter library</ActionButton>
+          </Card>
+        ) : null}
         <Card title="Add exercise">
           <ActionForm action={saveExercise}>
             <ExerciseFields />
             <div className="mt-4"><SubmitButton>Add exercise</SubmitButton></div>
           </ActionForm>
         </Card>
+        </div>
       </div>
     </>
   );

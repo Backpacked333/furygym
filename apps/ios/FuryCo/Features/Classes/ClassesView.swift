@@ -104,14 +104,16 @@ private struct ClassRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(DateText.time(session.startsAt, in: model.timeZone).replacingOccurrences(of: " AM", with: "").replacingOccurrences(of: " PM", with: ""))
-                    .font(.headline.monospacedDigit())
+                Text(DateText.time(session.startsAt, in: model.timeZone))
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text("\(session.durationMinutes) min").font(.footnote).foregroundStyle(FC.label2)
             }
-            .frame(width: 62, alignment: .leading)
+            .frame(width: 72, alignment: .leading)
             Capsule().fill(Color(hex: session.trackColor)).frame(width: 3, height: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text(session.title).font(.body.weight(.medium))
+                Text(session.title).font(.body.weight(.medium)).lineLimit(2)
                 if let coach = session.coachName { Text("Coach \(coach)").font(.footnote).foregroundStyle(FC.label2) }
                 CapacityBar(booked: session.bookedCount, capacity: session.capacity)
             }
@@ -128,6 +130,7 @@ private struct ClassRow: View {
     @ViewBuilder private var status: some View {
         let action = ClassBooking.action(for: session, now: Date(), cancelCutoffMinutes: model.gym?.cancelCutoffMinutes ?? 60, bookingWindowDays: model.gym?.bookingWindowDays ?? 14)
         switch (session.myBookingStatus, action) {
+        case _ where session.status == "cancelled": Text(session.myClassCancelled == true ? "Cancelled\nYou were booked" : "Cancelled").font(.footnote.weight(.semibold)).foregroundStyle(FC.label2).multilineTextAlignment(.trailing).fixedSize()
         case (.booked, _): Chip(text: "Booked", color: FC.green, systemImage: "checkmark")
         case (.attended, _): Chip(text: "Attended", color: FC.green, systemImage: "checkmark")
         case (.waitlisted, _): Chip(text: session.myWaitlistPosition.map { "Waitlist #\($0)" } ?? "Waitlisted", color: FC.orange)

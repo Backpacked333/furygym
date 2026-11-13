@@ -4,6 +4,7 @@ import { Avatar, Badge, CapacityBar, Card, Empty, LinkButton, PageHeader, Stat, 
 import { requireStaff } from "@/lib/auth";
 import { addDays, formatDate, formatDateTime, formatTime, todayInZone, zonedToUtc } from "@/lib/format";
 import { publishState } from "@/lib/workouts";
+import { NeedsAttention, SetupChecklist } from "./attention";
 
 export const metadata = { title: "Dashboard" };
 
@@ -16,7 +17,7 @@ function summarise(e: { load: number | null; load_unit: string; reps: number | n
 }
 
 export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
-  const { supabase, gym, profile } = await requireStaff();
+  const { supabase, gym, profile, isAdmin } = await requireStaff();
   const { denied } = await searchParams;
   const today = todayInZone(gym.timezone);
   const dayStart = zonedToUtc(today, "00:00", gym.timezone).toISOString();
@@ -69,6 +70,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
       />
       {denied ? <p className="mb-4 rounded-2xl bg-warn/15 px-4 py-3 text-sm text-warn">That area is limited to admins and owners.</p> : null}
 
+      {isAdmin ? <SetupChecklist supabase={supabase} /> : null}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Checked in today" value={checkedIn} hint={`${booked} booked across ${classes.length} ${classes.length === 1 ? "class" : "classes"}`} />
         <Stat label="Logs to review" value={toReview.length} tone={toReview.length ? "accent" : undefined} hint={newPRs ? `${newPRs} with new PRs` : "Last 7 days"} />
@@ -79,6 +82,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
           hint={next ? `${next.tracks?.name ?? ""} · ${next.title}` : "Nothing scheduled"}
         />
       </div>
+
+      <NeedsAttention supabase={supabase} gym={gym} />
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_1fr_0.9fr]">
         <Card title="Today’s classes" actions={<LinkButton small href="/admin/schedule">Schedule</LinkButton>}>
@@ -125,7 +130,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
               })}
             </ul>
           ) : (
-            <Empty>Every recent log has feedback.</Empty>
+            <Empty>{logs.data?.length ? "Every recent log has feedback." : "No workouts logged in the last 7 days."}</Empty>
           )}
         </Card>
 

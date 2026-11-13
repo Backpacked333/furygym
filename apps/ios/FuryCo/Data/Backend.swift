@@ -68,6 +68,18 @@ struct Backend: Sendable {
         return ServerMessage.isKnown(text) ? ServerMessage.friendly(text) : text
     }
 
+    /// A sentence for a failed sign-in. Supabase reports an unconfirmed address only after the
+    /// password has matched, so saying so gives nothing away.
+    static func signInMessage(for error: Error) -> String {
+        if (error as? URLError) != nil {
+            return "No connection. Check your signal and try again."
+        }
+        if (error as? AuthError)?.errorCode == .emailNotConfirmed {
+            return "Confirm your email first: open the link we sent when you signed up."
+        }
+        return "That email and password do not match an account."
+    }
+
     // MARK: Account
 
     var currentUserID: UUID? { client.auth.currentUser?.id }
@@ -213,7 +225,7 @@ struct Backend: Sendable {
     func classes(from: Date, to: Date) async throws -> [ClassSession] {
         try await fetch(
             client.from("class_session_overview")
-                .select("id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position,track_id")
+                .select("id,title,starts_at,ends_at,capacity,status,track_name,track_color,coach_name,booked_count,waitlist_count,my_booking_id,my_booking_status,my_waitlist_position,track_id,my_class_cancelled")
                 .gte("starts_at", value: Timestamp.format(from))
                 .lt("starts_at", value: Timestamp.format(to))
                 .order("starts_at")

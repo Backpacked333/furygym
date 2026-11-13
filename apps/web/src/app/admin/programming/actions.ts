@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fail, text, type ActionState } from "@/lib/action";
 import { requireStaff } from "@/lib/auth";
+import { STARTER_EXERCISES } from "@/lib/starter-exercises";
 import { zonedToUtc } from "@/lib/format";
 import { workoutSchema } from "@/lib/workouts";
 
@@ -49,6 +50,7 @@ export async function saveWorkout(_: ActionState, form: FormData): Promise<Actio
     }
   }
   if (input.is_template && status === "published") return fail("Templates stay as drafts. Create a workout from the template to publish it.");
+  if (status === "published" && input.items.length === 0) return fail("Add at least one block before publishing. Save it as a draft until then.");
 
   const row = {
     gym_id: gym.id,
@@ -142,4 +144,19 @@ export async function saveExercise(_: ActionState, form: FormData): Promise<Acti
   if (error) return fail(error.code === "23505" ? "An exercise with that name already exists." : error);
   revalidatePath("/admin/exercises");
   return { ok: id ? "Saved." : `Added ${row.name}.` };
+}
+
+/** Adds the starter movements the gym does not already have. Existing exercises are left as they are. */
+export async function addStarterExercises(): Promise<ActionState> {
+  const { supabase, gym } = await requireStaff();
+  const { data: existing, error: readError } = await supabase.from("exercises").select("name");
+  if (readError) return fail(readError);
+  const have = new Set((existing ?? []).map((e) => e.name.trim().toLowerCase()));
+  const rows = STARTER_EXERCISES.filter((e) => !have.has(e.name.toLowerCase())).map((e) => ({ ...e, gym_id: gym.id }));
+  if (!rows.length) return { ok: "The starter movements are already in your library." };
+  const { error } = await supabase.from("exercises").insert(rows);
+  if (error) return fail(error);
+  revalidatePath("/admin/exercises");
+  revalidatePath("/admin");
+  return { ok: `Added ${rows.length} movements. Edit or archive any that do not fit.` };
 }

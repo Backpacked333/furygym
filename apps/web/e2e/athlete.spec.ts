@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, signIn } from "./helpers";
+import { db, PASSWORD, signIn } from "./helpers";
 
 test("a new athlete signs up, signs the waiver, and is told plainly when payments are off", async ({ page }) => {
   const email = `e2e-${Date.now()}@test.furyco.test`;
@@ -47,4 +47,35 @@ test("signed-out visitors are sent to sign in, and can browse programs", async (
   await expect(page.getByRole("heading", { name: "Selection Prep — 6 Week" })).toBeVisible();
   await expect(page.getByText("$149.00")).toBeVisible();
   await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
+});
+
+test("signing in before confirming the email says so, and a second sign-up points to sign-in", async ({ page }) => {
+  const email = `e2e-unconfirmed-${Date.now()}@test.furyco.test`;
+  const { data, error } = await db().auth.admin.createUser({ email, password: PASSWORD, email_confirm: false, user_metadata: { full_name: "Una Unconfirmed" } });
+  expect(error).toBeNull();
+
+  try {
+    await page.goto("/login");
+    await page.getByLabel("Email").first().fill(email);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText("Confirm your email first")).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+
+    // A wrong password must not reveal that the address is waiting to be confirmed.
+    await page.getByLabel("Email").first().fill(email);
+    await page.getByLabel("Password").fill("not-the-password");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText("That email and password do not match an account.")).toBeVisible();
+    await expect(page.getByText("Confirm your email first")).toBeHidden();
+
+    await page.goto("/join");
+    await page.getByLabel("Full name").fill("Alex Again");
+    await page.getByLabel("Email").fill("alex@furyco.test");
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByText("That email already has an account. Sign in instead.")).toBeVisible();
+  } finally {
+    await db().auth.admin.deleteUser(data.user!.id);
+  }
 });

@@ -129,7 +129,7 @@ struct AuthSheet: View {
                 }
             }
         } catch {
-            self.error = mode == .signIn ? "That email and password do not match an account." : Backend.message(for: error)
+            self.error = mode == .signIn ? Backend.signInMessage(for: error) : Backend.message(for: error)
         }
     }
 

@@ -44,14 +44,26 @@ export async function publishWaiver(_: ActionState, form: FormData): Promise<Act
   const title = text(form, "title");
   const body = text(form, "body");
   if (!title || body.length < 20) return fail("Enter a title and the full agreement text.");
-  const { data: latest } = await supabase.from("waivers").select("version").eq("gym_id", gym.id).order("version", { ascending: false }).limit(1).maybeSingle();
-
-  const { error: retire } = await supabase.from("waivers").update({ active: false }).eq("gym_id", gym.id).eq("active", true);
-  if (retire) return fail(retire);
-  const { error } = await supabase.from("waivers").insert({ gym_id: gym.id, title, body, version: (latest?.version ?? 0) + 1 });
+  const { error } = await supabase.rpc("publish_waiver", { p_gym: gym.id, p_title: title, p_body: body });
   if (error) return fail(error);
   revalidatePath("/admin/plans");
   return { ok: "New version published. Members will be asked to sign it before their next booking." };
+}
+
+/** The privacy policy, terms and support address shown on the public website and linked from the app. */
+export async function saveLegal(_: ActionState, form: FormData): Promise<ActionState> {
+  const { supabase, gym } = await requireAdmin();
+  const email = text(form, "support_email");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter a valid support email address.");
+  const { error } = await supabase.from("gym_legal").upsert({
+    gym_id: gym.id,
+    support_email: email || null,
+    privacy_policy: text(form, "privacy_policy") || null,
+    terms: text(form, "terms") || null,
+  });
+  if (error) return fail(error);
+  for (const path of ["/privacy", "/terms", "/support", "/admin/plans"]) revalidatePath(path);
+  return { ok: "Saved. The public pages now show this text." };
 }
 
 export async function saveGymSettings(_: ActionState, form: FormData): Promise<ActionState> {

@@ -28,6 +28,12 @@ export default async function SessionPage({ params }: PageProps<"/admin/schedule
   const roster = live.filter((b) => b.status !== "waitlisted");
   const waitlist = live.filter((b) => b.status === "waitlisted");
   const lateCancels = (bookings ?? []).filter((b) => b.status === "cancelled" && b.late_cancel);
+  // Athletes who held a place or a waitlist spot when the gym cancelled the class.
+  const seen = new Set<string>();
+  const toTell = session.status === "cancelled" ? (bookings ?? []).filter((b) => b.class_cancelled && !seen.has(b.user_id) && Boolean(seen.add(b.user_id))) : [];
+  const emails = [...new Set(toTell.map((b) => b.profiles?.email).filter((e): e is string => Boolean(e)))];
+  const classLabel = `${session.title} on ${formatDate(day, { weekday: "long", month: "short", day: "numeric" })} at ${formatTime(session.starts_at!, gym.timezone)}`;
+  const mailto = `mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(`${session.title} is cancelled`)}&body=${encodeURIComponent(`Hi,\n\n${classLabel} has been cancelled. Your place has been released and any class credit you used has been returned.\n\nYou can book another class in the app.\n\n${gym.name}`)}`;
   const bookedIds = new Set(live.map((b) => b.user_id));
 
   // What each athlete is booked on, and whether this is their first class.
@@ -83,6 +89,20 @@ export default async function SessionPage({ params }: PageProps<"/admin/schedule
             <Stat label="Waitlist" value={waitlist.length} />
             <Stat label="Coach" value={<span className="text-[26px] leading-8">{session.coach_name ?? "—"}</span>} />
           </div>
+
+          {toTell.length ? (
+            <Card title={`Tell ${toTell.length} ${toTell.length === 1 ? "athlete" : "athletes"} this class is cancelled`} actions={emails.length ? <LinkButton small variant="primary" href={mailto}>Email all</LinkButton> : null}>
+              <p className="mb-3 text-[13px] text-muted">The app shows each of them a notice on their Today screen. Nothing is emailed automatically: “Email all” opens your own email with everyone in Bcc.</p>
+              <ul className="divide-y divide-line" data-testid="cancelled-athletes">
+                {toTell.map((b) => (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                    <Link href={`/admin/members/${b.user_id}`} className="font-medium hover:underline">{b.profiles?.full_name || "(no name)"}</Link>
+                    {b.profiles?.email ? <a href={`mailto:${b.profiles.email}`} className="text-muted hover:underline">{b.profiles.email}</a> : <span className="text-faint">No email</span>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           <Card title="Roster">
             {roster.length || lateCancels.length ? (

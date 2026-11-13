@@ -24,7 +24,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
   const { id } = await params;
   const today = todayInZone(gym.timezone);
 
-  const [{ data: member }, { data: memberships }, { data: enrollments }, { data: bookings }, { data: logs }, { data: signatures }, { data: plans }, payments, { data: records }] = await Promise.all([
+  const [{ data: member }, { data: memberships }, { data: enrollments }, { data: bookings }, { data: logs }, { data: signatures }, { data: plans }, payments, { data: records }, { count: logCount }] = await Promise.all([
     supabase.from("gym_members").select("role, status, joined_at, profiles(*)").eq("user_id", id).maybeSingle(),
     supabase.from("memberships").select("*, membership_plans(name, kind)").eq("user_id", id).order("created_at", { ascending: false }),
     supabase.from("enrollments").select("*, programs(id, name)").eq("user_id", id).order("created_at", { ascending: false }),
@@ -39,6 +39,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
     supabase.from("membership_plans").select("id, name").eq("active", true).order("position"),
     isAdmin ? supabase.from("payments").select("*").eq("user_id", id).order("paid_at", { ascending: false, nullsFirst: true }).order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: null }),
     supabase.from("personal_records").select("exercise_name, reps, load, load_unit, performed_on").eq("user_id", id).order("exercise_name"),
+    supabase.from("workout_logs").select("id", { count: "exact", head: true }).eq("user_id", id),
   ]);
   if (!member?.profiles) notFound();
   const profile = member.profiles;
@@ -58,7 +59,7 @@ export default async function MemberPage({ params }: PageProps<"/admin/members/[
       />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <Stat label="Workouts logged" value={logs?.length ?? 0} tone="accent" hint="Most recent sessions shown below" />
+        <Stat label="Workouts logged" value={<span data-testid="workouts-logged">{logCount ?? logs?.length ?? 0}</span>} tone="accent" hint="Most recent sessions shown below" />
         <Stat
           label={records?.[0] ? `${records[0].exercise_name}${records[0].reps ? ` ${records[0].reps}RM` : ""}` : "Personal records"}
           value={records?.[0] ? `${records[0].load} ${records[0].load_unit}` : "—"}

@@ -45,14 +45,14 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "booked_at": string,"cancelled_at": string | null,"checked_in_at": string | null,"checked_in_by": string | null,"credit_used": boolean,"gym_id": string,"id": string,"late_cancel": boolean,"membership_id": string | null,"session_id": string,"status": Database["public"]['Enums']["booking_status"],"user_id": string
+                    "booked_at": string,"cancelled_at": string | null,"checked_in_at": string | null,"checked_in_by": string | null,"class_cancelled": boolean,"credit_used": boolean,"gym_id": string,"id": string,"late_cancel": boolean,"membership_id": string | null,"session_id": string,"status": Database["public"]['Enums']["booking_status"],"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "booked_at"?: string,"cancelled_at"?: string | null,"checked_in_at"?: string | null,"checked_in_by"?: string | null,"credit_used"?: boolean,"gym_id": string,"id"?: string,"late_cancel"?: boolean,"membership_id"?: string | null,"session_id": string,"status"?: Database["public"]['Enums']["booking_status"],"user_id": string
+                    "booked_at"?: string,"cancelled_at"?: string | null,"checked_in_at"?: string | null,"checked_in_by"?: string | null,"class_cancelled"?: boolean,"credit_used"?: boolean,"gym_id": string,"id"?: string,"late_cancel"?: boolean,"membership_id"?: string | null,"session_id": string,"status"?: Database["public"]['Enums']["booking_status"],"user_id": string
                   }
                   Update: {
-                    "booked_at"?: string,"cancelled_at"?: string | null,"checked_in_at"?: string | null,"checked_in_by"?: string | null,"credit_used"?: boolean,"gym_id"?: string,"id"?: string,"late_cancel"?: boolean,"membership_id"?: string | null,"session_id"?: string,"status"?: Database["public"]['Enums']["booking_status"],"user_id"?: string
+                    "booked_at"?: string,"cancelled_at"?: string | null,"checked_in_at"?: string | null,"checked_in_by"?: string | null,"class_cancelled"?: boolean,"credit_used"?: boolean,"gym_id"?: string,"id"?: string,"late_cancel"?: boolean,"membership_id"?: string | null,"session_id"?: string,"status"?: Database["public"]['Enums']["booking_status"],"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -299,6 +299,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"gym_legal": {
+                  Row: {
+                    "gym_id": string,"privacy_policy": string | null,"support_email": string | null,"terms": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "gym_id": string,"privacy_policy"?: string | null,"support_email"?: string | null,"terms"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "gym_id"?: string,"privacy_policy"?: string | null,"support_email"?: string | null,"terms"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "gym_legal_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: true
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"gym_members": {
                   Row: {
                     "gym_id": string,"joined_at": string,"role": Database["public"]['Enums']["gym_role"],"status": string,"user_id": string
@@ -405,6 +425,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "memberships_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"milestone_rewards": {
+                  Row: {
+                    "given_at": string,"given_by": string | null,"gym_id": string,"id": string,"reward": string | null,"user_id": string,"visits": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "given_at"?: string,"given_by"?: string | null,"gym_id": string,"id"?: string,"reward"?: string | null,"user_id": string,"visits": number
+                  }
+                  Update: {
+                    "given_at"?: string,"given_by"?: string | null,"gym_id"?: string,"id"?: string,"reward"?: string | null,"user_id"?: string,"visits"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "milestone_rewards_given_by_fkey"
+      columns: ["given_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "milestone_rewards_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "milestone_rewards_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
@@ -818,7 +870,7 @@ isOneToOne: false
                   ]
                 },"class_session_overview": {
                   Row: {
-                    "booked_count": number | null,"capacity": number,"checked_in_count": number | null,"coach_id": string | null,"coach_name": string | null,"ends_at": string,"gym_id": string,"id": string,"my_booking_id": string | null,"my_booking_status": Database["public"]['Enums']["booking_status"] | null,"my_waitlist_position": number | null,"notes": string | null,"schedule_id": string | null,"starts_at": string,"status": string,"title": string,"track_color": string | null,"track_id": string | null,"track_name": string | null,"waitlist_count": number | null
+                    "booked_count": number | null,"capacity": number,"checked_in_count": number | null,"coach_id": string | null,"coach_name": string | null,"ends_at": string,"gym_id": string,"id": string,"my_booking_id": string | null,"my_booking_status": Database["public"]['Enums']["booking_status"] | null,"my_class_cancelled": boolean | null,"my_waitlist_position": number | null,"notes": string | null,"schedule_id": string | null,"starts_at": string,"status": string,"title": string,"track_color": string | null,"track_id": string | null,"track_name": string | null,"waitlist_count": number | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -906,6 +958,7 @@ isOneToOne: false
 "cancelled_at": string | null,
 "checked_in_at": string | null,
 "checked_in_by": string | null,
+"class_cancelled": boolean,
 "credit_used": boolean,
 "gym_id": string,
 "id": string,
@@ -930,6 +983,7 @@ isOneToOne: false
 "cancelled_at": string | null,
 "checked_in_at": string | null,
 "checked_in_by": string | null,
+"class_cancelled": boolean,
 "credit_used": boolean,
 "gym_id": string,
 "id": string,
@@ -951,6 +1005,7 @@ isOneToOne: false
 "cancelled_at": string | null,
 "checked_in_at": string | null,
 "checked_in_by": string | null,
+"class_cancelled": boolean,
 "credit_used": boolean,
 "gym_id": string,
 "id": string,
@@ -1002,6 +1057,11 @@ isOneToOne: false
 "is_staff":
 { Args: { "p_gym": string }; Returns: boolean
                            },
+"milestones_due":
+{ Args: { "p_gym": string }; Returns: {
+              "email": string,"full_name": string,"milestone": number,"user_id": string,"visits": number
+            }[]
+                           },
 "my_attendance":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -1012,6 +1072,28 @@ isOneToOne: false
                            },
 "my_checkin_secret":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"publish_waiver":
+{ Args: { "p_body": string,"p_gym": string,"p_title": string }; Returns: {
+              "active": boolean,
+"body": string,
+"created_at": string,
+"gym_id": string,
+"id": string,
+"required": boolean,
+"title": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "waivers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"quiet_members":
+{ Args: { "p_days"?: number,"p_gym": string }; Returns: {
+              "email": string,"full_name": string,"last_visit": string,"user_id": string
+            }[]
                            },
 "report_overview":
 { Args: { "p_from": string,"p_gym": string,"p_to": string }; Returns: Json

@@ -11,6 +11,8 @@ export async function signIn(_: ActionState, form: FormData): Promise<ActionStat
     email: text(form, "email"),
     password: typeof form.get("password") === "string" ? form.get("password") as string : "",
   });
+  // Supabase only reports this after the password has matched, so it gives nothing away.
+  if (error?.code === "email_not_confirmed") return fail("Confirm your email first: open the link we sent when you signed up. Signing up again sends a new link.");
   if (error || !data.user) return fail("That email and password do not match an account.");
 
   const { data: member } = await supabase.from("gym_members").select("role").eq("user_id", data.user.id).maybeSingle();

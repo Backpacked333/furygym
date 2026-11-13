@@ -39,6 +39,13 @@ test.describe("coach publishes a workout", () => {
     await page.goto(`/admin/programming/workouts/new?date=${today}`, { waitUntil: "networkidle" });
     await page.getByLabel("Title").first().fill(laterTitle);
     await page.getByLabel("Track").selectOption({ label: "Strength" });
+    // a workout with no blocks would put a bare title on the display, so it cannot be published
+    await page.getByText("Publish now").click();
+    await page.getByRole("button", { name: "Save workout" }).click();
+    await expect(page.getByText("Add at least one block before publishing. Save it as a draft until then.")).toBeVisible();
+    expect((await db().from("workouts").select("id").eq("title", laterTitle)).data).toHaveLength(0);
+    await page.getByLabel("Search exercises").fill("dead");
+    await page.getByRole("button", { name: /Deadlift/ }).click();
     await page.getByText("Schedule", { exact: true }).click();
     await page.getByLabel("Publish date").fill(addDays(today, 1));
     await page.getByLabel("Publish time").fill("18:00");
@@ -208,7 +215,7 @@ test.describe("gym screen reliability", () => {
   });
 
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }]) {
-    test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it says so`, async ({ page }) => {
+    test(`a long workout is shrunk to fit a ${viewport.width}x${viewport.height} screen, and a day too long for it shows one workout at a time`, async ({ page }) => {
       const today = await gymToday();
       const title = `E2E Long Day ${Date.now()}`;
       const { data: track } = await db().from("tracks").select("id, gym_id").eq("slug", "strength").single();
@@ -245,13 +252,32 @@ test.describe("gym screen reliability", () => {
         expect(pinned!.y + pinned!.height).toBeLessThanOrEqual(viewport.height);
         await page.screenshot({ path: `test-results/display-long-${viewport.width}.png` });
 
-        // with every track's workout on as well it cannot all fit at a readable size: the screen says so, and never scrolls
+        // with every track's workout on as well they cannot share the screen at a readable size, so they take
+        // turns: one workout at a time, at full size, and the screen never scrolls
         await state({ mode: "auto", workout_id: null });
         await page.goto("/display/demo-display-token");
-        await expect(page.getByTestId("display-workout")).toHaveCount(3);
-        await expect(page.getByTestId("display-overflow")).toBeVisible();
+        const workouts = page.getByTestId("display-workout");
+        await expect(workouts).toHaveCount(3);
+        await expect(board).toHaveAttribute("data-paged", "");
+        await expect(workouts.filter({ visible: true })).toHaveCount(1);
+        await expect(page.getByTestId("display-turn").filter({ visible: true })).toHaveText(/^[123] of 3$/);
         expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
-        await page.screenshot({ path: `test-results/display-too-long-${viewport.width}.png` });
+        await page.screenshot({ path: `test-results/display-turns-${viewport.width}.png` });
+        if (viewport.width === 1920) {
+          // the next workout takes its turn without anyone touching the screen
+          test.setTimeout(120_000);
+          const onScreen = () => workouts.filter({ visible: true }).getByRole("heading").first().textContent();
+          const first = await onScreen();
+          await expect.poll(onScreen, { timeout: 45_000 }).not.toBe(first);
+          await expect(workouts.filter({ visible: true })).toHaveCount(1);
+          expect(await overflow()).toBeLessThanOrEqual(1);
+        }
+
+        // Off blanks the screen, banner included
+        await state({ mode: "off", message: "Bring a friend Friday — guests train free" });
+        await page.goto("/display/demo-display-token");
+        await expect(page.getByTestId("display-workout")).toHaveCount(0);
+        await expect(page.getByText("Bring a friend Friday")).toHaveCount(0);
       } finally {
         await state({ mode: "auto", workout_id: null, show_coach_notes: false, message: null });
         await db().from("workouts").delete().eq("id", workout!.id);

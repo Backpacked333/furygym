@@ -33,10 +33,13 @@ export function createTokenClient(accessToken: string) {
   });
 }
 
-/** Service-role client. Bypasses row-level security — server-only, for webhooks and admin tasks. */
-export function createAdminClient() {
+/**
+ * Service-role client. Bypasses row-level security — server-only, for webhooks and admin tasks.
+ * Pass the signed-in user it is acting for, so the change log names them instead of "System".
+ */
+export function createAdminClient(actorId?: string) {
   return createPlainClient<Database>(env.supabaseUrl, env.supabaseServiceRoleKey, {
-    global: { fetch: withDeadlockRetry(env.supabaseUrl) },
+    global: { fetch: withDeadlockRetry(env.supabaseUrl), headers: actorId ? { "x-fury-actor": actorId } : undefined },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
