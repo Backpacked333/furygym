@@ -10,7 +10,8 @@
     "web:dev": "pnpm --filter @furygym/web dev",
     "web:build": "pnpm --filter @furygym/web build",
     "web:test": "pnpm --filter @furygym/web test",
-    "web:e2e": "pnpm --filter @furygym/web e2e"
+    "web:e2e": "pnpm --filter @furygym/web e2e",
+    "web:e2e:fresh": "pnpm --filter @furygym/web e2e:fresh"
   },
   "devDependencies": {
     "supabase": "^2.0.0"

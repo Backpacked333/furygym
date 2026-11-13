@@ -3,6 +3,8 @@
 Nothing below has been done yet: this build created no accounts and deployed nothing. Steps are in
 the order they depend on each other.
 
+For who has to supply what, the acceptance tests and the handover, see `docs/ship-plan.md`.
+
 ## 1. Backend (Supabase)
 
 1. Create a Supabase project for production (a second one for staging is worth having).

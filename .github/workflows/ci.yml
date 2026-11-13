@@ -71,6 +71,14 @@ jobs:
         env:
           CI: "true"
 
+      # Production starts with no demo data: prove a gym can be set up from the migrations alone.
+      - name: Fresh-install test (migrations only)
+        run: |
+          pnpm exec supabase db reset --no-seed
+          pnpm web:e2e:fresh
+        env:
+          CI: "true"
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

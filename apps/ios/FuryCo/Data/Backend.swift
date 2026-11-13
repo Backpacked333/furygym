@@ -68,6 +68,18 @@ struct Backend: Sendable {
         return ServerMessage.isKnown(text) ? ServerMessage.friendly(text) : text
     }
 
+    /// A sentence for a failed sign-in. Supabase reports an unconfirmed address only after the
+    /// password has matched, so saying so gives nothing away.
+    static func signInMessage(for error: Error) -> String {
+        if (error as? URLError) != nil {
+            return "No connection. Check your signal and try again."
+        }
+        if (error as? AuthError)?.errorCode == .emailNotConfirmed {
+            return "Confirm your email first: open the link we sent when you signed up."
+        }
+        return "That email and password do not match an account."
+    }
+
     // MARK: Account
 
     var currentUserID: UUID? { client.auth.currentUser?.id }
