@@ -66,6 +66,30 @@ describe("class cancelled by the gym", () => {
   });
 });
 
+describe("a class cancelled a second time", () => {
+  it("only flags the athletes booked at the second cancellation", async () => {
+    const stayed = await newAthlete("rebooked");
+    const left = await newAthlete("not-rebooked");
+    await makeMember(stayed.id);
+    await makeMember(left.id);
+    const session = await newSession(4);
+    for (const athlete of [stayed, left]) expect((await athlete.client.rpc("book_class", { p_session: session.id })).error).toBeNull();
+    const setStatus = async (status: string) => expect((await owner.from("class_sessions").update({ status }).eq("id", session.id)).error).toBeNull();
+    const flagged = async () => ((await db.from("bookings").select("user_id").eq("session_id", session.id).eq("class_cancelled", true)).data ?? []).map((b) => b.user_id);
+
+    await setStatus("cancelled");
+    expect((await flagged()).sort()).toEqual([stayed.id, left.id].sort());
+    await setStatus("scheduled");
+    expect(await flagged()).toEqual([]);
+    const mine = await left.client.from("class_session_overview").select("my_class_cancelled").eq("id", session.id).single();
+    expect(mine.data?.my_class_cancelled).toBe(false);
+
+    expect((await stayed.client.rpc("book_class", { p_session: session.id })).error).toBeNull();
+    await setStatus("cancelled");
+    expect(await flagged()).toEqual([stayed.id]);
+  });
+});
+
 describe("members who have gone quiet", () => {
   it("lists active members with no visit in the period, for staff only", async () => {
     const quiet = await newAthlete("quiet");

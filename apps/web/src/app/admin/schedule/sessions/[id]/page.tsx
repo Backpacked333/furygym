@@ -29,7 +29,8 @@ export default async function SessionPage({ params }: PageProps<"/admin/schedule
   const waitlist = live.filter((b) => b.status === "waitlisted");
   const lateCancels = (bookings ?? []).filter((b) => b.status === "cancelled" && b.late_cancel);
   // Athletes who held a place or a waitlist spot when the gym cancelled the class.
-  const toTell = session.status === "cancelled" ? (bookings ?? []).filter((b) => b.class_cancelled) : [];
+  const seen = new Set<string>();
+  const toTell = session.status === "cancelled" ? (bookings ?? []).filter((b) => b.class_cancelled && !seen.has(b.user_id) && Boolean(seen.add(b.user_id))) : [];
   const emails = [...new Set(toTell.map((b) => b.profiles?.email).filter((e): e is string => Boolean(e)))];
   const classLabel = `${session.title} on ${formatDate(day, { weekday: "long", month: "short", day: "numeric" })} at ${formatTime(session.starts_at!, gym.timezone)}`;
   const mailto = `mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(`${session.title} is cancelled`)}&body=${encodeURIComponent(`Hi,\n\n${classLabel} has been cancelled. Your place has been released and any class credit you used has been returned.\n\nYou can book another class in the app.\n\n${gym.name}`)}`;
