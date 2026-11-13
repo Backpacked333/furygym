@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="furyco-${type}-${from}-to-${to}.csv"`,
+      "Content-Disposition": `attachment; filename="furyco-${type}-${type === "members" ? `as-of-${dateInZone(new Date(), gym.timezone)}` : `${from}-to-${to}`}.csv"`,
       "Cache-Control": "no-store",
     },
   });
