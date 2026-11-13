@@ -54,8 +54,8 @@ but could not be exercised end to end here (says why). **Not built** = out of th
 | Add a booked class to the phone calendar | Built | Write-only calendar permission, asked on first use |
 | In-app account deletion | Built | Required by the App Store; stops billing first |
 
-The iOS screens compile and their unit tests run in CI on macOS. They have **not** been used by
-hand on a device or simulator in this build — see "Not yet verified" below.
+The iOS screens compile and their unit tests run in CI on macOS. They have been used by hand in
+the simulator, not on a physical phone — see "Not yet verified" below.
 
 ### D. On-demand online programs
 
