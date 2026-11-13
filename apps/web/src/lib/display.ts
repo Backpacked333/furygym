@@ -11,6 +11,8 @@ export type DisplayPayload = {
 
 /** How often a screen asks for the latest display. */
 export const REFRESH_MS = 30_000;
+/** How long each workout stays up when a day's workouts take turns on the screen. */
+export const ROTATE_MS = 25_000;
 /** A screen that has not reported in for this long is treated as disconnected. */
 export const SCREEN_ONLINE_MS = 3 * REFRESH_MS;
 

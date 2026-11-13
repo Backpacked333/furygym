@@ -50,6 +50,22 @@ export async function publishWaiver(_: ActionState, form: FormData): Promise<Act
   return { ok: "New version published. Members will be asked to sign it before their next booking." };
 }
 
+/** The privacy policy, terms and support address shown on the public website and linked from the app. */
+export async function saveLegal(_: ActionState, form: FormData): Promise<ActionState> {
+  const { supabase, gym } = await requireAdmin();
+  const email = text(form, "support_email");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter a valid support email address.");
+  const { error } = await supabase.from("gym_legal").upsert({
+    gym_id: gym.id,
+    support_email: email || null,
+    privacy_policy: text(form, "privacy_policy") || null,
+    terms: text(form, "terms") || null,
+  });
+  if (error) return fail(error);
+  for (const path of ["/privacy", "/terms", "/support", "/admin/plans"]) revalidatePath(path);
+  return { ok: "Saved. The public pages now show this text." };
+}
+
 export async function saveGymSettings(_: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, gym } = await requireAdmin();
   const timezone = text(form, "timezone");

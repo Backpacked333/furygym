@@ -67,3 +67,8 @@ input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
 }
+
+/* Gym display: when the day's workouts take turns, only the one whose turn it is stays on screen. */
+[data-paged] [data-workout]:not([data-active="true"]) {
+  display: none;
+}
