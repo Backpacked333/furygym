@@ -24,15 +24,19 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   const start = zonedToUtc(from, "00:00", gym.timezone).toISOString();
   const end = zonedToUtc(addDays(to, 1), "00:00", gym.timezone).toISOString();
 
-  const [revenue, overview, { data: payments }, { data: payouts }] = await Promise.all([
+  const LIST = 200;
+  let listQuery = supabase
+    .from("payments")
+    .select("id, user_id, kind, description, amount_cents, tax_cents, fee_cents, refunded_cents, currency, status, failure_reason, paid_at, created_at, profiles(full_name)", { count: "exact" })
+    .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`);
+  // Filtering in the query, so a refund or failure older than the newest rows is still listed.
+  if (show === "refunds") listQuery = listQuery.gt("refunded_cents", 0);
+  if (show === "failed") listQuery = listQuery.eq("status", "failed");
+
+  const [revenue, overview, { data: payments, count: matching }, { data: payouts }] = await Promise.all([
     supabase.rpc("report_revenue", { p_gym: gym.id, p_from: from, p_to: to }),
     supabase.rpc("report_overview", { p_gym: gym.id, p_from: from, p_to: to }),
-    supabase
-      .from("payments")
-      .select("id, user_id, kind, description, amount_cents, tax_cents, fee_cents, refunded_cents, currency, status, failure_reason, paid_at, created_at, profiles(full_name)")
-      .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
-      .order("created_at", { ascending: false })
-      .limit(200),
+    listQuery.order("created_at", { ascending: false }).limit(LIST),
     supabase.from("payouts").select("*").order("arrival_date", { ascending: false }).limit(6),
   ]);
 
@@ -45,7 +49,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   const refundCount = rows.reduce((n, r) => n + (Number(r.refunded_cents) > 0 ? 1 : 0), 0);
   const feeRate = gross > 0 ? ((sum("fee_cents") / (gross + sum("tax_cents"))) * 100).toFixed(1) : null;
 
-  const listed = (payments ?? []).filter((p) => (show === "refunds" ? p.refunded_cents > 0 : show === "failed" ? p.status === "failed" : true));
+  const listed = payments ?? [];
+  const unlisted = Math.max(0, (matching ?? 0) - listed.length);
   const range = `from=${from}&to=${to}`;
   const exportHref = (type: string) => `/admin/reports/export?type=${type}&${range}`;
   const day = (iso: string | null) => (iso ? formatDate(dateInZone(new Date(iso), gym.timezone), { month: "short", day: "numeric" }) : "—");
@@ -166,6 +171,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
           ) : (
             <Empty>No transactions match.</Empty>
           )}
+          {unlisted ? (
+            <p className="mt-3 text-[13px] text-muted" data-testid="transactions-more">
+              Showing the newest {listed.length} of {listed.length + unlisted}. <Link href={exportHref("payments")} className="underline">Export CSV</Link> for the full list.
+            </p>
+          ) : null}
         </Card>
       </div>
     </>

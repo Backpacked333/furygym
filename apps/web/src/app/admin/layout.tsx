@@ -24,6 +24,7 @@ const sections: { title: string; items: Item[] }[] = [
       { href: "/admin/memberships", label: "Memberships", icon: "card", admin: true },
       { href: "/admin/reports", label: "Revenue", icon: "cash", admin: true },
       { href: "/admin/plans", label: "Plans & Settings", icon: "settings", admin: true },
+      { href: "/admin/activity", label: "Activity", icon: "clock", admin: true },
     ],
   },
   {

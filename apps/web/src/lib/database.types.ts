@@ -1013,6 +1013,23 @@ isOneToOne: false
 "my_checkin_secret":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"publish_waiver":
+{ Args: { "p_body": string,"p_gym": string,"p_title": string }; Returns: {
+              "active": boolean,
+"body": string,
+"created_at": string,
+"gym_id": string,
+"id": string,
+"required": boolean,
+"title": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "waivers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "report_overview":
 { Args: { "p_from": string,"p_gym": string,"p_to": string }; Returns: Json
                            },

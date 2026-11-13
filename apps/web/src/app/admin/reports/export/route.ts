@@ -5,6 +5,19 @@ import { addDays, dateInZone, zonedToUtc } from "@/lib/format";
 
 const isDate = (v: string | null): v is string => Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
 
+const PAGE = 1000;
+
+/** The API returns at most 1,000 rows a request, so an export reads every page instead of stopping at the first. */
+async function everyRow<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < PAGE) return rows;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const viewer = await getViewer();
   if (!viewer?.isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -20,43 +33,59 @@ export async function GET(request: NextRequest) {
   const day = (iso: string | null) => (iso ? dateInZone(new Date(iso), gym.timezone) : "");
 
   let csv: string;
-  if (type === "payments") {
-    const { data } = await supabase
-      .from("payments")
-      .select("*, profiles(full_name, email)")
-      .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
-      .order("created_at");
-    csv = toCsv(
-      ["date", "customer", "email", "revenue_stream", "type", "description", "status", "gross_sales", "tax", "charged", "processing_fee", "refunded", "net", "currency", "stripe_payment_intent", "stripe_invoice"],
-      (data ?? []).map((p) => {
-        const counted = p.status !== "failed" && p.status !== "pending";
-        return [
-          day(p.paid_at ?? p.created_at), p.profiles?.full_name ?? "(deleted account)", p.profiles?.email ?? "", p.revenue_stream, p.kind, p.description, p.status,
-          dollars(p.amount_cents - p.tax_cents), dollars(p.tax_cents), dollars(p.amount_cents), dollars(p.fee_cents), dollars(p.refunded_cents),
-          counted ? dollars(p.amount_cents - p.fee_cents - p.refunded_cents) : "0.00", p.currency, p.stripe_payment_intent_id, p.stripe_invoice_id,
-        ];
-      }),
-    );
-  } else if (type === "members") {
-    const { data } = await supabase.from("memberships").select("*, profiles(full_name, email), membership_plans(name, kind)").order("started_at");
-    csv = toCsv(
-      ["member", "email", "plan", "plan_type", "status", "source", "started", "renews", "ends", "credits_remaining"],
-      (data ?? []).map((m) => [m.profiles?.full_name, m.profiles?.email, m.membership_plans?.name, m.membership_plans?.kind, m.status, m.source, day(m.started_at), day(m.current_period_end), day(m.ends_at), m.credits_remaining]),
-    );
-  } else if (type === "attendance") {
-    const { data } = await supabase
-      .from("bookings")
-      .select("status, late_cancel, checked_in_at, profiles!bookings_user_id_fkey(full_name, email), class_sessions!inner(title, starts_at)")
-      .gte("class_sessions.starts_at", start)
-      .lt("class_sessions.starts_at", end);
-    csv = toCsv(
-      ["class_date", "class", "member", "email", "status", "late_cancel", "checked_in_at"],
-      (data ?? [])
-        .sort((a, b) => a.class_sessions.starts_at.localeCompare(b.class_sessions.starts_at))
-        .map((b) => [day(b.class_sessions.starts_at), b.class_sessions.title, b.profiles?.full_name, b.profiles?.email, b.status, b.late_cancel ? "yes" : "", b.checked_in_at ?? ""]),
-    );
-  } else {
-    return NextResponse.json({ error: "unknown_report" }, { status: 400 });
+  try {
+    if (type === "payments") {
+      const data = await everyRow((a, b) =>
+        supabase
+          .from("payments")
+          .select("*, profiles(full_name, email)")
+          .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
+          .order("created_at")
+          .order("id")
+          .range(a, b),
+      );
+      csv = toCsv(
+        ["date", "customer", "email", "revenue_stream", "type", "description", "status", "gross_sales", "tax", "charged", "processing_fee", "refunded", "net", "currency", "stripe_payment_intent", "stripe_invoice"],
+        data.map((p) => {
+          const counted = p.status !== "failed" && p.status !== "pending";
+          return [
+            day(p.paid_at ?? p.created_at), p.profiles?.full_name ?? "(deleted account)", p.profiles?.email ?? "", p.revenue_stream, p.kind, p.description, p.status,
+            dollars(p.amount_cents - p.tax_cents), dollars(p.tax_cents), dollars(p.amount_cents), dollars(p.fee_cents), dollars(p.refunded_cents),
+            counted ? dollars(p.amount_cents - p.fee_cents - p.refunded_cents) : "0.00", p.currency, p.stripe_payment_intent_id, p.stripe_invoice_id,
+          ];
+        }),
+      );
+    } else if (type === "members") {
+      const data = await everyRow((a, b) =>
+        supabase.from("memberships").select("*, profiles(full_name, email), membership_plans(name, kind)").order("started_at").order("id").range(a, b),
+      );
+      csv = toCsv(
+        ["member", "email", "plan", "plan_type", "status", "source", "started", "renews", "ends", "credits_remaining"],
+        data.map((m) => [m.profiles?.full_name, m.profiles?.email, m.membership_plans?.name, m.membership_plans?.kind, m.status, m.source, day(m.started_at), day(m.current_period_end), day(m.ends_at), m.credits_remaining]),
+      );
+    } else if (type === "attendance") {
+      const data = await everyRow((a, b) =>
+        supabase
+          .from("bookings")
+          .select("status, late_cancel, checked_in_at, profiles!bookings_user_id_fkey(full_name, email), class_sessions!inner(title, starts_at)")
+          .gte("class_sessions.starts_at", start)
+          .lt("class_sessions.starts_at", end)
+          .order("id")
+          .range(a, b),
+      );
+      csv = toCsv(
+        ["class_date", "class", "member", "email", "status", "late_cancel", "checked_in_at"],
+        data
+          .sort((a, b) => a.class_sessions.starts_at.localeCompare(b.class_sessions.starts_at))
+          .map((b) => [day(b.class_sessions.starts_at), b.class_sessions.title, b.profiles?.full_name, b.profiles?.email, b.status, b.late_cancel ? "yes" : "", b.checked_in_at ?? ""]),
+      );
+    } else {
+      return NextResponse.json({ error: "unknown_report" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("export failed", error);
+    // A partial file would look complete, so a failed read returns no file at all.
+    return NextResponse.json({ error: "export_failed" }, { status: 503 });
   }
 
   return new NextResponse(csv, {
