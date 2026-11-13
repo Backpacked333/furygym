@@ -336,6 +336,22 @@ final class BookingAndAccessTests: XCTestCase {
         ClassBooking.action(for: s, now: now, cancelCutoffMinutes: 60, bookingWindowDays: 14)
     }
 
+    func testAClassTheGymCancelledIsFlaggedUntilItWouldHaveFinished() throws {
+        var cancelled = session(startsIn: 600, status: "cancelled")
+        XCTAssertFalse(cancelled.cancelledOnAthlete(now: now), "a cancelled class the athlete never booked is not their news")
+        cancelled.myClassCancelled = true
+        XCTAssertTrue(cancelled.cancelledOnAthlete(now: now))
+        XCTAssertFalse(cancelled.cancelledOnAthlete(now: now.addingTimeInterval(700 * 60)), "once the class would have finished the notice goes")
+        var live = session(startsIn: 600, mine: .booked)
+        live.myClassCancelled = false
+        XCTAssertFalse(live.cancelledOnAthlete(now: now))
+
+        let json = #"[{"id":"7e0d3b0e-3f0a-4d7e-9b62-1f2f5f0a1c11","title":"Strength","starts_at":"2026-11-16T12:00:00+00:00","ends_at":"2026-11-16T13:00:00+00:00","capacity":12,"status":"cancelled","booked_count":0,"waitlist_count":0,"my_class_cancelled":true}]"#
+        let decoded = try JSONCoding.decoder().decode([ClassSession].self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.first?.myClassCancelled, true)
+        XCTAssertNil(decoded.first?.myBookingStatus)
+    }
+
     func testWhatTheClassButtonOffers() {
         XCTAssertEqual(action(session(startsIn: 600)), .book)
         XCTAssertEqual(action(session(startsIn: 600, booked: 12)), .joinWaitlist)

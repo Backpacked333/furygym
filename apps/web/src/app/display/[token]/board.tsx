@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { classTimer, clockOffset, REFRESH_MS, type DisplayPayload, type DisplayWorkout } from "@/lib/display";
+import { classTimer, clockOffset, REFRESH_MS, ROTATE_MS, type DisplayPayload, type DisplayWorkout } from "@/lib/display";
 import { dateInZone } from "@/lib/format";
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -10,6 +10,8 @@ const BLOCK_COLORS = ["#ff4245", "#ff4245", "#ff9230", "#6d7cff", "#30d158", "#f
 
 /** A viewport-relative size that shrinks with --fit when the workout is too long for the screen. */
 const fit = (n: number) => `calc(${n.toFixed(2)}vw * var(--fit, 1))`;
+/** The same, also scaled by a variable that is 1 when a workout has the screen to itself and smaller when it shares it. */
+const dense = (n: number, by: string) => `calc(${n.toFixed(2)}vw * var(--fit, 1) * var(${by}, 1))`;
 
 type View = {
   data: DisplayPayload;
@@ -21,9 +23,8 @@ type View = {
   refreshedAt: number;
 };
 
-function Blocks({ workout, compact }: { workout: DisplayWorkout; compact: boolean }) {
-  const scale = compact ? 0.72 : 1;
-  const vw = (n: number) => fit(n * scale);
+function Blocks({ workout }: { workout: DisplayWorkout }) {
+  const vw = (n: number) => dense(n, "--dense");
   return (
     <div className="grid flex-1" style={{ gap: fit(1.4), gridTemplateColumns: `repeat(${Math.min(Math.max(workout.items.length, 1), 4)}, minmax(0, 1fr))` }}>
       {workout.items.map((item, index) => {
@@ -126,20 +127,34 @@ export function DisplayBoard({ token, preview = false, initial }: { token: strin
     };
   }, [token, preview]);
 
-  // A TV cannot scroll, so a long workout is shrunk until the whole of it is on screen. Below MIN_FIT the
-  // text is too small to read across a room, so past that the screen says it is cut off rather than hide it.
+  // A TV cannot scroll. When the day's workouts do not fit side by side at full size they take turns, one
+  // at a time, instead of all shrinking. A single workout that is still too long is shrunk until it fits;
+  // below MIN_FIT the text is too small to read across a room, so past that the screen says it is cut off.
   const fitToScreen = useCallback(() => {
     const el = board.current;
     if (!el) return;
+    const shared = el.querySelectorAll("[data-workout]").length > 1;
+    const share = (on: boolean) => {
+      el.style.setProperty("--dense", on ? "0.72" : "1");
+      el.style.setProperty("--dense-title", on ? "0.53" : "1");
+      el.style.setProperty("--dense-sub", on ? "0.83" : "1");
+    };
     let scale = 1;
     el.style.setProperty("--fit", "1");
+    el.removeAttribute("data-paged");
+    share(shared);
+    if (shared && el.scrollHeight > el.clientHeight + 1) {
+      el.setAttribute("data-paged", "");
+      share(false);
+    }
     while (el.scrollHeight > el.clientHeight + 1 && scale > MIN_FIT) {
       scale = Math.max(MIN_FIT, scale - 0.04);
       el.style.setProperty("--fit", scale.toFixed(2));
     }
     el.toggleAttribute("data-overflow", el.scrollHeight > el.clientHeight + 1);
   }, []);
-  useLayoutEffect(fitToScreen, [fitToScreen, view.data, view.status]);
+  const turn = now === null ? 0 : Math.floor((now + view.offset) / ROTATE_MS);
+  useLayoutEffect(fitToScreen, [fitToScreen, view.data, view.status, turn]);
   useEffect(() => {
     window.addEventListener("resize", fitToScreen);
     return () => window.removeEventListener("resize", fitToScreen);
@@ -163,7 +178,9 @@ export function DisplayBoard({ token, preview = false, initial }: { token: strin
   // Lead with the workout for the class that is about to start.
   const workouts = hidden ? [] : [...data.workouts].sort((a, b) => Number(b.track === next?.track) - Number(a.track === next?.track));
   const compact = workouts.length > 1;
-  const message = hidden ? null : data.message;
+  const showing = workouts.length ? turn % workouts.length : 0;
+  // Off means a blank screen, so the banner goes too.
+  const message = hidden || data.mode === "off" ? null : data.message;
 
   return (
     <main ref={board} data-status={status} className="flex h-screen flex-col overflow-hidden bg-black px-[4.2vw] py-[3.2vw] text-white" style={{ backgroundImage: "radial-gradient(60% 55% at 85% 0%, rgba(233,21,45,0.22), rgba(233,21,45,0) 70%)" }}>
@@ -194,14 +211,15 @@ export function DisplayBoard({ token, preview = false, initial }: { token: strin
         <div className="mt-[2.6vw] flex min-h-0 flex-1 gap-[1.6vw]">
           <div className="flex min-w-0 flex-1 flex-col" style={{ gap: fit(2) }}>
             {workouts.map((workout, index) => (
-              <article key={workout.id} data-testid="display-workout" className="flex flex-1 flex-col">
+              <article key={workout.id} data-testid="display-workout" data-workout data-active={index === showing} className="flex flex-1 flex-col">
                 <div className="flex flex-wrap items-baseline gap-x-[1.6vw]" style={{ marginBottom: fit(1.4) }}>
-                  <p className="brand leading-[0.95]" style={{ fontSize: fit(compact ? 3.6 : 6.8), color: compact ? (workout.track_color ?? "#fff") : "#fff" }}>{workout.track ?? "Workout"}</p>
-                  <h2 className="font-semibold text-white/65" style={{ fontSize: fit(compact ? 1.9 : 2.3) }}>
+                  <p className="brand leading-[0.95]" style={{ fontSize: dense(6.8, "--dense-title"), color: compact ? (workout.track_color ?? "#fff") : "#fff" }}>{workout.track ?? "Workout"}</p>
+                  <h2 className="font-semibold text-white/65" style={{ fontSize: dense(2.3, "--dense-sub") }}>
                     {index === 0 && classTime && workout.track === next?.track ? `${classTime} · ` : ""}{workout.title}
                   </h2>
+                  <p data-testid="display-turn" className="ml-auto hidden font-semibold tabular-nums text-white/55 [[data-paged]_&]:block" style={{ fontSize: fit(1.6) }}>{index + 1} of {workouts.length}</p>
                 </div>
-                <Blocks workout={workout} compact={compact} />
+                <Blocks workout={workout} />
                 {workout.coach_notes ? <p className="italic text-white/60" style={{ marginTop: fit(1), fontSize: fit(1.3) }}>Coach: {workout.coach_notes}</p> : null}
               </article>
             ))}
@@ -237,7 +255,7 @@ export function DisplayBoard({ token, preview = false, initial }: { token: strin
       )}
 
       <p role="status" data-testid="display-overflow" className="fixed bottom-[1.4vw] left-[1.8vw] hidden rounded-full bg-[#3a2a00] px-[1.3vw] py-[0.5vw] text-[1.3vw] font-semibold text-[#ffd600] shadow-[inset_0_0_0_1.5px_rgba(255,214,0,0.45)] [[data-overflow]_&]:block">
-        Too much to fit on this screen · show one track or pin a workout in Displays
+        Too long to fit on this screen · shorten the workout or split it into two
       </p>
 
       {status === "stale" ? (

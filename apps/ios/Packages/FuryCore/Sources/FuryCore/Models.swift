@@ -234,13 +234,17 @@ public struct ClassSession: Codable, Hashable, Sendable, Identifiable {
     public var myBookingStatus: BookingStatus?
     public var myWaitlistPosition: Int?
     public var trackId: UUID?
+    /// The athlete held a place or a waitlist spot when the gym cancelled this class.
+    public var myClassCancelled: Bool?
 
     public var isFull: Bool { bookedCount >= capacity }
+    /// The gym cancelled a class this athlete was booked into and it has not finished yet, so they still need telling.
+    public func cancelledOnAthlete(now: Date) -> Bool { status == "cancelled" && myClassCancelled == true && endsAt > now }
     public var durationMinutes: Int { Int((endsAt.timeIntervalSince(startsAt) / 60).rounded()) }
 
     public init(id: UUID, title: String, startsAt: Date, endsAt: Date, capacity: Int, status: String = "scheduled", trackName: String? = nil,
                 trackColor: String? = nil, coachName: String? = nil, bookedCount: Int = 0, waitlistCount: Int = 0, myBookingId: UUID? = nil,
-                myBookingStatus: BookingStatus? = nil, myWaitlistPosition: Int? = nil, trackId: UUID? = nil) {
+                myBookingStatus: BookingStatus? = nil, myWaitlistPosition: Int? = nil, trackId: UUID? = nil, myClassCancelled: Bool? = nil) {
         self.id = id
         self.title = title
         self.startsAt = startsAt
@@ -256,6 +260,7 @@ public struct ClassSession: Codable, Hashable, Sendable, Identifiable {
         self.myBookingStatus = myBookingStatus
         self.myWaitlistPosition = myWaitlistPosition
         self.trackId = trackId
+        self.myClassCancelled = myClassCancelled
     }
 }
 

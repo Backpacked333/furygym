@@ -93,7 +93,7 @@ export default async function DisplayControlPage() {
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
             <div className="rounded-2xl bg-black p-4 shadow-[inset_0_0_0_1px_var(--color-line)]">
               <div className="flex items-center justify-between text-[11px]"><span className="brand">Fury Co.</span><span className="font-semibold">{preview?.next_class ? formatDateTime(preview.next_class.starts_at, gym.timezone).split(", ").pop() : ""}</span></div>
-              {preview?.message ? <p className="mt-2 rounded-lg bg-accent/15 px-2 py-1 text-xs font-semibold">{preview.message}</p> : null}
+              {preview?.message && state?.mode !== "off" ? <p className="mt-2 rounded-lg bg-accent/15 px-2 py-1 text-xs font-semibold">{preview.message}</p> : null}
               {showing ? (
                 <>
                   <p className="brand mt-2 text-xl">{showing.track ?? "Workout"} <span className="text-xs font-semibold not-italic text-muted normal-case">· {showing.title}</span></p>
@@ -144,7 +144,7 @@ export default async function DisplayControlPage() {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Message banner" hint="Optional. For example: “Open gym until 8pm”.">
+                <Field label="Message banner" hint="Optional. For example: “Open gym until 8pm”. Hidden while the display is Off.">
                   <Input name="message" defaultValue={state?.message ?? ""} maxLength={140} />
                 </Field>
               </div>

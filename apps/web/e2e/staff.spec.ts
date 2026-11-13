@@ -252,13 +252,17 @@ test.describe("gym screen reliability", () => {
         expect(pinned!.y + pinned!.height).toBeLessThanOrEqual(viewport.height);
         await page.screenshot({ path: `test-results/display-long-${viewport.width}.png` });
 
-        // with every track's workout on as well it cannot all fit at a readable size: the screen says so, and never scrolls
+        // with every track's workout on as well they cannot share the screen at a readable size, so they take
+        // turns: one workout at a time, at full size, and the screen never scrolls
         await state({ mode: "auto", workout_id: null });
         await page.goto("/display/demo-display-token");
-        await expect(page.getByTestId("display-workout")).toHaveCount(3);
-        await expect(page.getByTestId("display-overflow")).toBeVisible();
+        const workouts = page.getByTestId("display-workout");
+        await expect(workouts).toHaveCount(3);
+        await expect(board).toHaveAttribute("data-paged", "");
+        await expect(workouts.filter({ visible: true })).toHaveCount(1);
+        await expect(page.getByTestId("display-turn").filter({ visible: true })).toHaveText(/^[123] of 3$/);
         expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
-        await page.screenshot({ path: `test-results/display-too-long-${viewport.width}.png` });
+        await page.screenshot({ path: `test-results/display-turns-${viewport.width}.png` });
       } finally {
         await state({ mode: "auto", workout_id: null, show_coach_notes: false, message: null });
         await db().from("workouts").delete().eq("id", workout!.id);

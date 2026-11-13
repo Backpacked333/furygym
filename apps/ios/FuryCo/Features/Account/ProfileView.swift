@@ -498,6 +498,13 @@ struct SettingsView: View {
                     .disabled(saving || fullName.trimmingCharacters(in: .whitespaces).count < 2)
 
                 ListGroup {
+                    Link(destination: model.backend.webBaseURL.appending(path: "support")) { ListRow(title: "Help & support") }.buttonStyle(.plain)
+                    Link(destination: model.backend.webBaseURL.appending(path: "privacy")) { ListRow(title: "Privacy policy") }.buttonStyle(.plain)
+                    Link(destination: model.backend.webBaseURL.appending(path: "terms")) { ListRow(title: "Terms of service", isLast: true) }.buttonStyle(.plain)
+                }
+                .padding(.top, 10)
+
+                ListGroup {
                     Button { Task { await model.signOut() } } label: { ListRow(title: "Sign out", showChevron: false) }.buttonStyle(.plain)
                     Button { confirmDelete = true } label: {
                         ListRow(title: deleting ? "Deleting…" : "Delete account", titleColor: FC.red, showChevron: false, isLast: true)

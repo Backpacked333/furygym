@@ -128,6 +128,7 @@ private struct ClassRow: View {
     @ViewBuilder private var status: some View {
         let action = ClassBooking.action(for: session, now: Date(), cancelCutoffMinutes: model.gym?.cancelCutoffMinutes ?? 60, bookingWindowDays: model.gym?.bookingWindowDays ?? 14)
         switch (session.myBookingStatus, action) {
+        case _ where session.status == "cancelled": Text(session.myClassCancelled == true ? "Cancelled · you were booked" : "Cancelled").font(.footnote.weight(.semibold)).foregroundStyle(FC.label2)
         case (.booked, _): Chip(text: "Booked", color: FC.green, systemImage: "checkmark")
         case (.attended, _): Chip(text: "Attended", color: FC.green, systemImage: "checkmark")
         case (.waitlisted, _): Chip(text: session.myWaitlistPosition.map { "Waitlist #\($0)" } ?? "Waitlisted", color: FC.orange)

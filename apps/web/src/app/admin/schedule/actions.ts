@@ -86,7 +86,7 @@ export async function updateSession(_: ActionState, form: FormData): Promise<Act
   if (error) return fail(error);
   revalidatePath(`/admin/schedule/sessions/${id}`);
   revalidatePath("/admin/schedule");
-  return { ok: patch.status === "cancelled" ? "Class cancelled. Reservations were released and unused class credits returned. Tell booked athletes — notifications are not sent automatically yet." : "Saved." };
+  return { ok: patch.status === "cancelled" ? "Class cancelled. Reservations were released and unused class credits returned. The app shows each athlete a notice; email them from the list below, since nothing is sent automatically." : "Saved." };
 }
 
 export async function staffBook(_: ActionState, form: FormData): Promise<ActionState> {
